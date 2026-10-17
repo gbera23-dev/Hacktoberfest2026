@@ -1,9 +1,40 @@
 import axios, { type AxiosInstance } from "axios";
-import type { ComputeRoutesRequest, ComputeRoutesResponse, GeocodeResponse } from "./googleMapsTypes.js";
+import type { ComputeRoutesRequest, ComputeRoutesResponse, GeocodeResponse, GoogleRoute, GoogleTransitRoute, GoogleTransitStep } from "./googleMapsTypes.js";
 import { MOCK_GEOCODING, MOCK_ROUTES } from "../../mock-data/googleMaps.js";
 
 export const GOOGLE_ROUTES_BASE_URL = "https://routes.googleapis.com";
 export const GOOGLE_GEOCODING_BASE_URL = "https://geocode.googleapis.com";
+
+export function extractGoogleTransitSteps(route: GoogleRoute): GoogleTransitStep[] {
+  return route.legs?.flatMap((leg) => leg.steps ?? []).flatMap((step) => {
+    const details = step.transitDetails;
+    if (!details?.transitLine) return [];
+    return [{
+      distanceMeters: step.distanceMeters,
+      duration: step.duration,
+      lineName: details.transitLine.name,
+      lineShortName: details.transitLine.nameShort,
+      lineColor: details.transitLine.color,
+      lineTextColor: details.transitLine.textColor,
+      vehicleName: typeof details.transitLine.vehicle?.name === "string" ? details.transitLine.vehicle.name : details.transitLine.vehicle?.name?.text,
+      vehicleType: details.transitLine.vehicle?.type,
+      vehicleIconUri: details.transitLine.vehicle?.iconUri,
+      headsign: details.headsign,
+      stopCount: details.stopCount,
+      departureStop: details.stopDetails?.departureStop?.name,
+      arrivalStop: details.stopDetails?.arrivalStop?.name,
+    } satisfies GoogleTransitStep];
+  }) ?? [];
+}
+
+export function summarizeGoogleTransitRoutes(response: ComputeRoutesResponse): GoogleTransitRoute[] {
+  return (response.routes ?? []).map((route) => ({
+    distanceMeters: route.distanceMeters,
+    duration: route.duration,
+    staticDuration: route.staticDuration,
+    transitSteps: extractGoogleTransitSteps(route),
+  }));
+}
 
 export type GoogleMapsOptions = {
   apiKey: string;

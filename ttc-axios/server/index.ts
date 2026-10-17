@@ -1,6 +1,6 @@
 import cors from "cors";
 import express, { type Request } from "express";
-import { GoogleMapsApi, TtcApi, type LatLng, type Locale } from "../api/src/index.js";
+import { GoogleMapsApi, TtcApi, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../api/src/index.js";
 import { runTtcChat, type ChatContext, type ChatTurn } from "../api/src/chatGraph.js";
 
 const apiKey = process.env.TTC_API_KEY;
@@ -71,6 +71,30 @@ app.get("/api/ttc/plan", async (req, res, next) => {
       return;
     }
     res.json(await ttc.trips.plan(from, to, locale(req)));
+  } catch (error) { next(error); }
+});
+
+app.get("/api/google/transit-route", async (req, res, next) => {
+  try {
+    if (!googleMaps) { res.status(503).json({ message: "Google Maps is not configured" }); return; }
+    const parsePoint = (value: unknown): [number, number] | undefined => {
+      const point = String(value ?? "").split(",").map(Number);
+      return point.length === 2 && point.every(Number.isFinite) ? [point[0], point[1]] : undefined;
+    };
+    const from = parsePoint(req.query.from);
+    const to = parsePoint(req.query.to);
+    if (!from || !to) { res.status(400).json({ message: "from and to must be lat,lon coordinates" }); return; }
+    const languageCode = req.query.locale === "ka" ? "ka" : "en";
+    const routes = await googleMaps.routes.compute({
+      origin: { location: { latLng: { latitude: from[0], longitude: from[1] } } },
+      destination: { location: { latLng: { latitude: to[0], longitude: to[1] } } },
+      travelMode: "TRANSIT",
+      computeAlternativeRoutes: true,
+      departureTime: new Date(Date.now() + 60_000).toISOString(),
+      languageCode,
+      units: "METRIC",
+    });
+    res.json({ routes: summarizeGoogleTransitRoutes(routes) });
   } catch (error) { next(error); }
 });
 

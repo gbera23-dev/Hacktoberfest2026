@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { ttc } from "../ttc";
+import { getGoogleTransitRoutes, ttc } from "../ttc";
 import type { LatLng, Locale } from "../../../api/src/index";
 
 export const useStops = (locale: Locale) => useQuery({
@@ -64,5 +64,13 @@ export const useTripPlan = (from: LatLng | undefined, to: LatLng | undefined, lo
   queryKey: ["plan", from, to, locale],
   queryFn: () => ttc.trips.plan(from!, to!, locale),
   enabled: Boolean(from && to),
+  staleTime: 30_000,
+});
+
+export const useGoogleTransitRoutes = (from: LatLng | undefined, to: LatLng | undefined, locale: Locale) => useQuery({
+  queryKey: ["google-transit-routes", from, to, locale],
+  queryFn: () => getGoogleTransitRoutes(from!, to!, locale),
+  enabled: Boolean(from && to),
+  retry: 0,
   staleTime: 30_000,
 });

@@ -31,12 +31,53 @@ export type GoogleRoute = {
     staticDuration?: string;
     steps?: Array<{
       distanceMeters?: number;
+      duration?: string;
       staticDuration?: string;
       navigationInstruction?: { instructions?: string };
-      transitDetails?: Record<string, unknown>;
+      transitDetails?: GoogleTransitDetails;
     }>;
   }>;
   localizedValues?: Record<string, unknown>;
+};
+
+export type GoogleTransitDetails = {
+  stopDetails?: {
+    arrivalStop?: { name?: string };
+    departureStop?: { name?: string };
+  };
+  transitLine?: {
+    name?: string;
+    nameShort?: string;
+    color?: string;
+    textColor?: string;
+    vehicle?: { name?: string | { text?: string }; type?: string; iconUri?: string };
+  };
+  headsign?: string;
+  stopCount?: number;
+  tripShortText?: string;
+};
+
+export type GoogleTransitStep = {
+  distanceMeters?: number;
+  duration?: string;
+  lineName?: string;
+  lineShortName?: string;
+  lineColor?: string;
+  lineTextColor?: string;
+  vehicleName?: string;
+  vehicleType?: string;
+  vehicleIconUri?: string;
+  headsign?: string;
+  stopCount?: number;
+  departureStop?: string;
+  arrivalStop?: string;
+};
+
+export type GoogleTransitRoute = {
+  distanceMeters?: number;
+  duration?: string;
+  staticDuration?: string;
+  transitSteps: GoogleTransitStep[];
 };
 
 export type ComputeRoutesResponse = {

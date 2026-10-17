@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import http from "node:http";
-import { GoogleMapsApi } from "../api/src/index.js";
+import { GoogleMapsApi, summarizeGoogleTransitRoutes } from "../api/src/index.js";
 
 const seen: { path: string; apiKey?: string; fieldMask?: string }[] = [];
 const server = http.createServer((req, res) => {
@@ -20,6 +20,8 @@ const geocode = await google.geocoding.geocode("Tbilisi");
 assert.ok(Array.isArray(geocode.results));
 assert.equal(seen[0]?.apiKey, "secret");
 assert.ok(seen[0]?.fieldMask?.includes("routes.duration"));
+const transit = summarizeGoogleTransitRoutes({ routes: [{ legs: [{ steps: [{ distanceMeters: 1200, duration: "300s", transitDetails: { transitLine: { name: "Didube route", nameShort: "338", vehicle: { name: { text: "Bus" }, type: "BUS" } }, headsign: "Free University", stopCount: 4, stopDetails: { departureStop: { name: "Didube" }, arrivalStop: { name: "Agrarian University" } } } }] }] }] });
+assert.deepEqual(transit[0]?.transitSteps[0], { distanceMeters: 1200, duration: "300s", lineName: "Didube route", lineShortName: "338", lineColor: undefined, lineTextColor: undefined, vehicleName: "Bus", vehicleType: "BUS", vehicleIconUri: undefined, headsign: "Free University", stopCount: 4, departureStop: "Didube", arrivalStop: "Agrarian University" });
 
 const fallback = new GoogleMapsApi({ apiKey: "expired", routesBaseUrl: "http://127.0.0.1:1", geocodingBaseUrl: "http://127.0.0.1:1", useMockFallback: true });
 const fallbackRoute = await fallback.routes.compute({ origin: { address: "Didube" }, destination: { address: "Free University" } });
