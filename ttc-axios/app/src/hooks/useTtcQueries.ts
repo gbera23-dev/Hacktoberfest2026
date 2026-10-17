@@ -54,6 +54,8 @@ export const useStopRoutePositions = (routes: { id: string }[] | undefined, loca
     queryKey: ["stop-route-positions", route.id, locale],
     queryFn: () => ttc.routes.positions(route.id, true),
     enabled: Boolean(route.id),
+    retry: 0,
+    staleTime: 10_000,
     refetchInterval: 15_000,
   })),
 });

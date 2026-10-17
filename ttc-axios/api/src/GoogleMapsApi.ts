@@ -1,0 +1,73 @@
+import axios, { type AxiosInstance } from "axios";
+import type { ComputeRoutesRequest, ComputeRoutesResponse, GeocodeResponse } from "./googleMapsTypes.js";
+import { MOCK_GEOCODING, MOCK_ROUTES } from "../../mock-data/googleMaps.js";
+
+export const GOOGLE_ROUTES_BASE_URL = "https://routes.googleapis.com";
+export const GOOGLE_GEOCODING_BASE_URL = "https://geocode.googleapis.com";
+
+export type GoogleMapsOptions = {
+  apiKey: string;
+  routesBaseUrl?: string;
+  geocodingBaseUrl?: string;
+  timeoutMs?: number;
+  useMockFallback?: boolean;
+};
+
+export class GoogleMapsApi {
+  readonly routes: {
+    compute: (request: ComputeRoutesRequest) => Promise<ComputeRoutesResponse>;
+  };
+  readonly geocoding: {
+    geocode: (address: string, options?: { language?: string; region?: string }) => Promise<GeocodeResponse>;
+  };
+
+  private readonly routesHttp: AxiosInstance;
+  private readonly geocodingHttp: AxiosInstance;
+  private readonly apiKey: string;
+  private readonly useMockFallback: boolean;
+
+  constructor(options: GoogleMapsOptions) {
+    if (!options.apiKey) throw new Error("GOOGLE_MAPS_API_KEY is required");
+    this.apiKey = options.apiKey;
+    this.useMockFallback = options.useMockFallback ?? false;
+    this.routesHttp = axios.create({ baseURL: options.routesBaseUrl ?? GOOGLE_ROUTES_BASE_URL, timeout: options.timeoutMs ?? 10_000 });
+    this.geocodingHttp = axios.create({ baseURL: options.geocodingBaseUrl ?? GOOGLE_GEOCODING_BASE_URL, timeout: options.timeoutMs ?? 10_000 });
+    this.routes = { compute: (request) => this.computeRoutes(request) };
+    this.geocoding = { geocode: (address, requestOptions) => this.geocode(address, requestOptions) };
+  }
+
+  private async computeRoutes(request: ComputeRoutesRequest): Promise<ComputeRoutesResponse> {
+    try {
+      const { data } = await this.routesHttp.post<ComputeRoutesResponse>("/directions/v2:computeRoutes", {
+        ...request,
+        travelMode: request.travelMode ?? "TRANSIT",
+        computeAlternativeRoutes: request.computeAlternativeRoutes ?? true,
+      }, {
+        headers: {
+          "X-Goog-Api-Key": this.apiKey,
+          "X-Goog-FieldMask": "routes.distanceMeters,routes.duration,routes.staticDuration,routes.polyline.encodedPolyline,routes.legs.distanceMeters,routes.legs.duration,routes.legs.staticDuration,routes.legs.steps.distanceMeters,routes.legs.steps.staticDuration,routes.legs.steps.navigationInstruction,routes.legs.steps.transitDetails,fallbackInfo",
+        },
+      });
+      return data;
+    } catch (error) {
+      if (this.useMockFallback) return MOCK_ROUTES;
+      throw error;
+    }
+  }
+
+  private async geocode(address: string, options: { language?: string; region?: string } = {}): Promise<GeocodeResponse> {
+    try {
+      const { data } = await this.geocodingHttp.get<GeocodeResponse>(`/v4/geocode/address/${encodeURIComponent(address)}`, {
+        params: { languageCode: options.language ?? "en", regionCode: options.region ?? "ge" },
+        headers: { "X-Goog-Api-Key": this.apiKey },
+      });
+      return data;
+    } catch (error) {
+      if (this.useMockFallback) {
+        const match = Object.entries(MOCK_GEOCODING).find(([name]) => address.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
+        if (match) return match[1];
+      }
+      throw error;
+    }
+  }
+}
