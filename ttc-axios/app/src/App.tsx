@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Bus, BusStop, LatLng, Locale } from "../../api/src/index";
+import { NavBar, pathForScreen, screenFromPath, type Screen } from "./components/NavBar";
 import { TtcMap } from "./components/TtcMap";
 import {
   useRoutePolyline,
@@ -11,8 +12,6 @@ import {
   useStops,
   useTripPlan,
 } from "./hooks/useTtcQueries";
-
-type Screen = "plan" | "stops" | "routes" | "live";
 
 const text = {
   en: { plan: "Plan a trip", stops: "Stops & arrivals", routes: "Routes", live: "Live buses", search: "Search stops", choose: "Choose a stop", chooseRoute: "Choose a route", loading: "Loading…", noData: "No data found", select: "Select", from: "From", to: "To", clickMap: "Click the map to set a location", setFrom: "Set origin", setTo: "Set destination", clear: "Clear", minutes: "min", realtime: "Live", scheduled: "Scheduled", departures: "Upcoming arrivals", map: "Network map", stopsLoaded: "stops loaded", noToken: "The proxy server must be running." },
@@ -71,7 +70,7 @@ function Planner({ locale, labels, stops }: { locale: Locale; labels: Labels; st
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>("en");
-  const [screen, setScreen] = useState<Screen>("plan");
+  const [screen, setScreen] = useState<Screen>(() => screenFromPath(window.location.pathname));
   const [selectedStop, setSelectedStop] = useState<BusStop>();
   const [selectedRoute, setSelectedRoute] = useState<Bus>();
   const labels = locale === "en" ? text.en : text.ka;
@@ -81,13 +80,32 @@ export default function App() {
   const livePositions = useRoutePositions(selectedRoute?.id, true);
   const activeStops = stops.data ?? [];
   const activeRoutes = routes.data ?? [];
-  const mapStops = activeStops.slice(0, 250);
+  // Keep the map lightweight by capping bus markers, while always showing all
+  // subway and gondola stops. The API orders most non-bus stops after buses.
+  const mapStops = [
+    ...activeStops.filter((stop) => stop.vehicleMode === "BUS").slice(0, 250),
+    ...activeStops.filter((stop) => stop.vehicleMode !== "BUS"),
+  ];
 
   useEffect(() => {
     if (!selectedRoute && activeRoutes[0]) setSelectedRoute(activeRoutes[0]);
   }, [activeRoutes, selectedRoute]);
 
-  return <div className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark">T</span><div><strong>Tbilisi Transit</strong><small>TTC network</small></div></div><nav>{(["plan", "stops", "routes", "live"] as Screen[]).map((item) => <button className={screen === item ? "active" : ""} key={item} onClick={() => setScreen(item)}>{labels[item]}</button>)}</nav><button className="language" onClick={() => setLocale(locale === "en" ? "ka" : "en")}>{locale === "en" ? "ქარ" : "ENG"}</button></header>
+  useEffect(() => {
+    const initialPath = pathForScreen(screen);
+    if (window.location.pathname !== initialPath) window.history.replaceState({}, "", initialPath);
+    const handlePopState = () => setScreen(screenFromPath(window.location.pathname));
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const navigate = (nextScreen: Screen) => {
+    const nextPath = pathForScreen(nextScreen);
+    if (window.location.pathname !== nextPath) window.history.pushState({}, "", nextPath);
+    setScreen(nextScreen);
+  };
+
+  return <div className="app-shell"><header className="topbar"><button className="brand" type="button" aria-label={labels.plan} onClick={() => { navigate("plan"); setSelectedStop(undefined); }}><span className="brand-mark">T</span><span><strong>Tbilisi Transit</strong><small>TTC network</small></span></button><NavBar screen={screen} labels={{ plan: labels.plan, stops: labels.stops, routes: labels.routes, live: labels.live }} onNavigate={navigate} /><button className="language" onClick={() => setLocale(locale === "en" ? "ka" : "en")}>{locale === "en" ? "ქარ" : "ENG"}</button></header>
     <main className="content"><div className="page-heading"><div><span className="eyebrow">TTC · Tbilisi</span><h1>{labels[screen]}</h1></div><span className="status-dot"><i /> {stops.isFetching ? labels.loading : `${activeStops.length} ${labels.stopsLoaded}`}</span></div>
       {stops.error && <ErrorMessage error={stops.error} />}
       {screen === "plan" && <Planner locale={locale} labels={labels} stops={mapStops} />}
