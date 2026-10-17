@@ -2,11 +2,13 @@ import cors from "cors";
 import express, { type Request } from "express";
 import { GoogleMapsApi, TtcApi, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../api/src/index.js";
 import { runTtcChat, type ChatContext, type ChatTurn } from "../api/src/chatGraph.js";
+import { runWhatIfSimulator, type WhatIfInput } from "../api/src/whatIfGraph.js";
 
 const apiKey = process.env.TTC_API_KEY;
 if (!apiKey) throw new Error("TTC_API_KEY is required");
 const geminiApiKey = process.env.GEMINI_API_KEY;
 if (!geminiApiKey) throw new Error("GEMINI_API_KEY is required");
+const whatIfApiKey = process.env.WHAT_IF_API_KEY;
 
 const app = express();
 const port = Number(process.env.PORT ?? 8787);
@@ -98,6 +100,25 @@ app.get("/api/google/transit-route", async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get("/api/google/places/search", async (req, res, next) => {
+  try {
+    if (!googleMaps) { res.status(503).json({ message: "Google Maps is not configured" }); return; }
+    const query = String(req.query.q ?? "").trim();
+    if (query.length < 2) { res.json({ places: [] }); return; }
+    const latitude = Number(req.query.lat);
+    const longitude = Number(req.query.lon);
+    const hasCenter = Number.isFinite(latitude) && Number.isFinite(longitude);
+    const places = await googleMaps.places.search({
+      textQuery: query,
+      languageCode: req.query.locale === "ka" ? "ka" : "en",
+      regionCode: "ge",
+      maxResultCount: 5,
+      ...(hasCenter ? { locationBias: { circle: { center: { latitude, longitude }, radius: 5_000 } } } : {}),
+    });
+    res.json(places);
+  } catch (error) { next(error); }
+});
+
 app.post("/api/chat", async (req, res, next) => {
   try {
     const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
@@ -117,6 +138,18 @@ app.post("/api/chat", async (req, res, next) => {
       selectedRoute: context?.selectedRoute,
     };
     res.json(await runTtcChat(ttc, geminiApiKey, message, safeContext, history, googleMaps));
+  } catch (error) { next(error); }
+});
+
+app.post("/api/what-if", async (req, res, next) => {
+  try {
+    if (!whatIfApiKey || whatIfApiKey === "my-key") { res.status(503).json({ message: "WHAT_IF_API_KEY is not configured yet" }); return; }
+    const body = req.body as Partial<WhatIfInput>;
+    const point = (value: unknown): value is [number, number] => Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === "number" && Number.isFinite(item));
+    if (!point(body.from) || !point(body.to)) { res.status(400).json({ message: "from and to must be coordinate pairs" }); return; }
+    const offsetsMinutes = Array.isArray(body.offsetsMinutes) ? body.offsetsMinutes.filter((offset): offset is number => typeof offset === "number" && Number.isInteger(offset) && offset >= 0 && offset <= 180).slice(0, 6) : [0, 10, 20, 30];
+    if (offsetsMinutes.length === 0) { res.status(400).json({ message: "At least one departure offset is required" }); return; }
+    res.json(await runWhatIfSimulator(ttc, whatIfApiKey, { from: body.from, to: body.to, locale: body.locale === "ka" ? "ka" : "en", offsetsMinutes }, googleMaps));
   } catch (error) { next(error); }
 });
 

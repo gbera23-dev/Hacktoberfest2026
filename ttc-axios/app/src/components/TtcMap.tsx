@@ -1,6 +1,6 @@
 import L from "leaflet";
-import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMapEvents } from "react-leaflet";
-import { useState } from "react";
+import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { useEffect, useState } from "react";
 import type { BusLocation, BusStop, LatLng } from "../../../api/src/index";
 import { GoogleTrafficMap } from "./GoogleTrafficMap";
 
@@ -33,6 +33,14 @@ function MapViewport({ onChange }: { onChange: (center: LatLng, zoom: number) =>
   return null;
 }
 
+function RecenterMap({ point }: { point?: LatLng }) {
+  const map = useMap();
+  useEffect(() => {
+    if (point) map.flyTo(point, Math.max(map.getZoom(), 15), { duration: 0.8 });
+  }, [map, point]);
+  return null;
+}
+
 type Props = {
   stops?: BusStop[];
   routeStops?: BusStop[];
@@ -49,15 +57,31 @@ export function TtcMap({ stops = [], routeStops = [], positions = [], from, to, 
   const routeLine = routeStops.map((stop) => [stop.lat, stop.lon] as [number, number]);
   const visibleStops = stops.length > 0 ? stops : routeStops;
   const [viewport, setViewport] = useState<{ center: LatLng; zoom: number }>({ center: TBILISI, zoom: 12 });
+  const [userLocation, setUserLocation] = useState<LatLng>();
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string>();
+  const locateUser = () => {
+    if (!navigator.geolocation) { setLocationError("Location is not supported by this browser."); return; }
+    setLocating(true);
+    setLocationError(undefined);
+    navigator.geolocation.getCurrentPosition(
+      (position) => { setUserLocation([position.coords.latitude, position.coords.longitude]); setLocating(false); },
+      (error) => { setLocationError(error.code === error.PERMISSION_DENIED ? "Location permission was denied." : "Could not determine your location."); setLocating(false); },
+      { enableHighAccuracy: true, maximumAge: 30_000, timeout: 10_000 },
+    );
+  };
   const updateViewport = (center: LatLng, zoom: number) => setViewport({ center, zoom });
   return <div className="map-shell">
     <label className={`traffic-toggle ${trafficEnabled ? "google" : "leaflet"}`}><input type="checkbox" checked={trafficEnabled} onChange={(event) => onTrafficChange?.(event.target.checked)} /> <span>Live traffic</span></label>
-    {trafficEnabled ? <GoogleTrafficMap center={viewport.center} zoom={viewport.zoom} onViewportChange={updateViewport} /> : <MapContainer center={viewport.center} zoom={viewport.zoom} className="map">
+    <button className="location-control" type="button" onClick={locateUser} disabled={locating} aria-label="Show my location">{locating ? "…" : "◎"} <span>{locating ? "Locating" : "My location"}</span></button>
+    {locationError && <p className="location-error" role="alert">{locationError}</p>}
+    {trafficEnabled ? <GoogleTrafficMap center={viewport.center} zoom={viewport.zoom} onViewportChange={updateViewport} userLocation={userLocation} /> : <MapContainer center={viewport.center} zoom={viewport.zoom} className="map">
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapViewport onChange={updateViewport} />
+      <RecenterMap point={userLocation} />
       <MapClick onPick={onPick} />
       <div className="map-legend" aria-label="Map legend"><span><i className="legend-icon legend-bus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v10H3V7a2 2 0 0 1 2-2Z"/><circle cx="7" cy="14" r="1.3"/><circle cx="17" cy="14" r="1.3"/></svg></i>Bus</span><span><i className="legend-icon legend-subway">M</i>Metro</span><span><i className="legend-icon legend-gondola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M12 6v4"/><path d="M7 10h10l-1 7H8l-1-7Z"/></svg></i>Gondola</span></div>
       {visibleStops.map((stop, index) => <Marker key={`${stop.id}-${index}`} position={[stop.lat, stop.lon]} icon={stopIcons[stop.vehicleMode]} eventHandlers={{ click: () => onStopSelect?.(stop) }}><Popup><strong>{stop.name}</strong><br />{modeLabels[stop.vehicleMode]}{stop.code && <><br />{stop.code}</>}</Popup></Marker>)}
@@ -65,6 +89,7 @@ export function TtcMap({ stops = [], routeStops = [], positions = [], from, to, 
       {positions.map((position, index) => <CircleMarker key={`${position.lat}-${position.lon}-${index}`} center={[position.lat, position.lon]} radius={7} pathOptions={{ color: "#dc2626", fillColor: "#ef4444", fillOpacity: 1 }} />)}
       {from && <CircleMarker center={from} radius={9} pathOptions={{ color: "#16a34a", fillColor: "#22c55e", fillOpacity: 1 }} />}
       {to && <CircleMarker center={to} radius={9} pathOptions={{ color: "#7c3aed", fillColor: "#8b5cf6", fillOpacity: 1 }} />}
+      {userLocation && <><CircleMarker center={userLocation} radius={10} pathOptions={{ color: "#fff", weight: 3, fillColor: "#2563eb", fillOpacity: 1 }} /><CircleMarker center={userLocation} radius={18} pathOptions={{ color: "#2563eb", weight: 2, fillColor: "#60a5fa", fillOpacity: 0.18 }}><Popup>Your location</Popup></CircleMarker></>}
     </MapContainer>}
   </div>;
 }

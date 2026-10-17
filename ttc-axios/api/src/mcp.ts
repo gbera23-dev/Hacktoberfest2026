@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Bus, BusPlan, BusStop, Locale } from "./types.js";
 import type { TtcApi } from "./TtcApi.js";
 import type { GoogleMapsApi } from "./GoogleMapsApi.js";
+import { summarizeGoogleTransitRoutes } from "./GoogleMapsApi.js";
 
 const localeSchema = z.enum(["en", "ka"]).default("en");
 
@@ -169,6 +170,21 @@ async function buildMcpServer(ttc: TtcApi, googleMaps?: GoogleMapsApi) {
     if (!origin.point || !destination.point) return result({ needsSelection: true, from: origin, to: destination });
     const plan: BusPlan = await ttc.trips.plan(origin.point, destination.point, locale);
     return result({ from: origin.stop ? compactStop(origin.stop) : origin.place ?? { lat: origin.point[0], lon: origin.point[1] }, to: destination.stop ? compactStop(destination.stop) : destination.place ?? { lat: destination.point[0], lon: destination.point[1] }, plan: compactPlan(plan) });
+  });
+
+  server.registerTool("simulate_departures", {
+    title: "Simulate departure times",
+    description: "Compare transit routes for future departure times. Google data is time-specific; TTC data is included as a live-now baseline.",
+    inputSchema: { fromLat: z.number(), fromLon: z.number(), toLat: z.number(), toLon: z.number(), offsetsMinutes: z.array(z.number().int().min(0).max(180)).min(1).max(6), locale: localeSchema },
+  }, async ({ fromLat, fromLon, toLat, toLon, offsetsMinutes, locale }) => {
+    const baseline = await ttc.trips.plan([fromLat, fromLon], [toLat, toLon], locale);
+    if (!googleMaps) return result({ baseline: compactPlan(baseline), scenarios: [], limitation: "Google route data is unavailable; only the live TTC baseline was returned." });
+    const scenarios = await Promise.all(offsetsMinutes.map(async (offsetMinutes) => {
+      const departureTime = new Date(Date.now() + offsetMinutes * 60_000).toISOString();
+      const routes = await googleMaps.routes.compute({ origin: { location: { latLng: { latitude: fromLat, longitude: fromLon } } }, destination: { location: { latLng: { latitude: toLat, longitude: toLon } } }, travelMode: "TRANSIT", computeAlternativeRoutes: true, departureTime, languageCode: locale, units: "METRIC" });
+      return { offsetMinutes, departureTime, routes: summarizeGoogleTransitRoutes(routes) };
+    }));
+    return result({ baseline: compactPlan(baseline), scenarios, limitation: "Future TTC departures are represented by Google time-specific transit routes; TTC baseline is live-now only." });
   });
 
   return server;

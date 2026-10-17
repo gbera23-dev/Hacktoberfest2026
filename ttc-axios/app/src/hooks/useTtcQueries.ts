@@ -1,5 +1,5 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
-import { getGoogleTransitRoutes, ttc } from "../ttc";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { getGoogleTransitRoutes, searchGooglePlaces, simulateDepartures, ttc, type WhatIfRequest } from "../ttc";
 import type { LatLng, Locale } from "../../../api/src/index";
 
 export const useStops = (locale: Locale) => useQuery({
@@ -74,3 +74,13 @@ export const useGoogleTransitRoutes = (from: LatLng | undefined, to: LatLng | un
   retry: 0,
   staleTime: 30_000,
 });
+
+export const useGooglePlaces = (query: string, locale: Locale, center?: LatLng) => useQuery({
+  queryKey: ["google-places", query, locale, center],
+  queryFn: () => searchGooglePlaces(query, locale, center),
+  enabled: query.trim().length >= 2,
+  retry: 0,
+  staleTime: 5 * 60_000,
+});
+
+export const useWhatIfSimulator = () => useMutation({ mutationFn: (request: WhatIfRequest) => simulateDepartures(request) });

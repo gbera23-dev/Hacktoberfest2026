@@ -99,3 +99,25 @@ export type GeocodeResult = {
 export type GeocodeResponse = {
   results: GeocodeResult[];
 };
+
+export type PlacesSearchRequest = {
+  textQuery: string;
+  languageCode?: string;
+  regionCode?: string;
+  maxResultCount?: number;
+  locationBias?: { circle: { center: GoogleLatLng; radius: number } };
+};
+
+export type GooglePlace = {
+  name?: string;
+  id?: string;
+  types?: string[];
+  displayName?: { text?: string; languageCode?: string };
+  formattedAddress?: string;
+  location?: GoogleLatLng;
+  googleMapsUri?: string;
+};
+
+export type PlacesSearchResponse = {
+  places?: GooglePlace[];
+};

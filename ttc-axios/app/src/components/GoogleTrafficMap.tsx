@@ -32,8 +32,12 @@ function loadGoogleMaps(): Promise<void> {
 
 type Props = { center: LatLng; zoom?: number; onViewportChange?: (center: LatLng, zoom: number) => void };
 
-export function GoogleTrafficMap({ center, zoom = 12, onViewportChange }: Props) {
+type LocationProps = Props & { userLocation?: LatLng };
+
+export function GoogleTrafficMap({ center, zoom = 12, onViewportChange, userLocation }: LocationProps) {
   const elementRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<{ setCenter: (point: { lat: number; lng: number }) => void; setZoom: (zoom: number) => void } | null>(null);
+  const markerRef = useRef<{ setMap: (map: unknown | null) => void } | null>(null);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -46,8 +50,10 @@ export function GoogleTrafficMap({ center, zoom = 12, onViewportChange }: Props)
           center: { lat: center[0], lng: center[1] },
           zoom,
         });
+        mapRef.current = map;
         const trafficLayer = new window.google.maps.TrafficLayer();
         trafficLayer.setMap(map);
+        if (userLocation) markerRef.current = new window.google.maps.Marker({ map, position: { lat: userLocation[0], lng: userLocation[1] }, title: "Your location" });
         const reportViewport = () => {
           const currentCenter = map.getCenter();
           onViewportChange?.([currentCenter.lat(), currentCenter.lng()], map.getZoom());
@@ -56,6 +62,9 @@ export function GoogleTrafficMap({ center, zoom = 12, onViewportChange }: Props)
         cleanup = () => {
           listeners.forEach((listener) => listener.remove());
           trafficLayer.setMap(null);
+          markerRef.current?.setMap(null);
+          markerRef.current = null;
+          mapRef.current = null;
         };
       })
       .catch((cause: unknown) => {
@@ -63,6 +72,15 @@ export function GoogleTrafficMap({ center, zoom = 12, onViewportChange }: Props)
       });
     return () => { disposed = true; cleanup?.(); };
   }, []);
+
+  useEffect(() => {
+    if (!userLocation || !window.google?.maps || !mapRef.current) return;
+    const position = { lat: userLocation[0], lng: userLocation[1] };
+    mapRef.current.setCenter(position);
+    mapRef.current.setZoom(Math.max(15, zoom));
+    if (markerRef.current) markerRef.current.setMap(null);
+    markerRef.current = new window.google.maps.Marker({ map: mapRef.current, position, title: "Your location" });
+  }, [userLocation]);
 
   return <div className="google-traffic-map">
     <div ref={elementRef} className="map" aria-label="Live traffic map" />

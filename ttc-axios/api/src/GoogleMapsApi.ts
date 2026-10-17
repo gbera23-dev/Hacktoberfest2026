@@ -1,9 +1,10 @@
 import axios, { type AxiosInstance } from "axios";
-import type { ComputeRoutesRequest, ComputeRoutesResponse, GeocodeResponse, GoogleRoute, GoogleTransitRoute, GoogleTransitStep } from "./googleMapsTypes.js";
-import { MOCK_GEOCODING, MOCK_ROUTES } from "../../mock-data/googleMaps.js";
+import type { ComputeRoutesRequest, ComputeRoutesResponse, GeocodeResponse, GoogleRoute, GoogleTransitRoute, GoogleTransitStep, PlacesSearchRequest, PlacesSearchResponse } from "./googleMapsTypes.js";
+import { MOCK_GEOCODING, MOCK_PLACES, MOCK_ROUTES } from "../../mock-data/googleMaps.js";
 
 export const GOOGLE_ROUTES_BASE_URL = "https://routes.googleapis.com";
 export const GOOGLE_GEOCODING_BASE_URL = "https://geocode.googleapis.com";
+export const GOOGLE_PLACES_BASE_URL = "https://places.googleapis.com";
 
 export function extractGoogleTransitSteps(route: GoogleRoute): GoogleTransitStep[] {
   return route.legs?.flatMap((leg) => leg.steps ?? []).flatMap((step) => {
@@ -40,6 +41,7 @@ export type GoogleMapsOptions = {
   apiKey: string;
   routesBaseUrl?: string;
   geocodingBaseUrl?: string;
+  placesBaseUrl?: string;
   timeoutMs?: number;
   useMockFallback?: boolean;
 };
@@ -51,9 +53,13 @@ export class GoogleMapsApi {
   readonly geocoding: {
     geocode: (address: string, options?: { language?: string; region?: string }) => Promise<GeocodeResponse>;
   };
+  readonly places: {
+    search: (request: PlacesSearchRequest) => Promise<PlacesSearchResponse>;
+  };
 
   private readonly routesHttp: AxiosInstance;
   private readonly geocodingHttp: AxiosInstance;
+  private readonly placesHttp: AxiosInstance;
   private readonly apiKey: string;
   private readonly useMockFallback: boolean;
 
@@ -63,8 +69,29 @@ export class GoogleMapsApi {
     this.useMockFallback = options.useMockFallback ?? false;
     this.routesHttp = axios.create({ baseURL: options.routesBaseUrl ?? GOOGLE_ROUTES_BASE_URL, timeout: options.timeoutMs ?? 10_000 });
     this.geocodingHttp = axios.create({ baseURL: options.geocodingBaseUrl ?? GOOGLE_GEOCODING_BASE_URL, timeout: options.timeoutMs ?? 10_000 });
+    this.placesHttp = axios.create({ baseURL: options.placesBaseUrl ?? GOOGLE_PLACES_BASE_URL, timeout: options.timeoutMs ?? 10_000 });
     this.routes = { compute: (request) => this.computeRoutes(request) };
     this.geocoding = { geocode: (address, requestOptions) => this.geocode(address, requestOptions) };
+    this.places = { search: (request) => this.searchPlaces(request) };
+  }
+
+  private async searchPlaces(request: PlacesSearchRequest): Promise<PlacesSearchResponse> {
+    try {
+      const { data } = await this.placesHttp.post<PlacesSearchResponse>("/v1/places:searchText", request, {
+        headers: {
+          "X-Goog-Api-Key": this.apiKey,
+          "X-Goog-FieldMask": "places.name,places.id,places.types,places.displayName,places.formattedAddress,places.location,places.googleMapsUri",
+        },
+      });
+      return data;
+    } catch (error) {
+      if (this.useMockFallback) {
+        const needle = request.textQuery.toLocaleLowerCase();
+        const match = Object.entries(MOCK_PLACES).find(([name]) => needle.includes(name.toLocaleLowerCase()) || name.toLocaleLowerCase().includes(needle));
+        if (match) return { places: [match[1]] };
+      }
+      throw error;
+    }
   }
 
   private async computeRoutes(request: ComputeRoutesRequest): Promise<ComputeRoutesResponse> {

@@ -11,6 +11,7 @@ declare global {
           addListener: (event: string, handler: () => void) => { remove: () => void };
         };
         TrafficLayer: new () => { setMap: (map: unknown | null) => void };
+        Marker: new (options: { map: unknown; position: { lat: number; lng: number }; title?: string }) => { setMap: (map: unknown | null) => void };
       };
     };
   }
