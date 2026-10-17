@@ -49,6 +49,30 @@ For a production build, run `npm run build`; deploy the Express proxy alongside
 the generated `dist/` directory. `npm run test:live` makes a direct request to
 the TTC API and requires network access plus a valid key.
 
+## Deploy to Netlify
+
+The repository includes a Netlify configuration and a serverless API function,
+so the frontend and backend proxy deploy together. Import the repository into
+Netlify from its repository root and use the committed [`netlify.toml`](../netlify.toml).
+No separate Express process is needed in production.
+
+Add these environment variables in Netlify site settings before deploying:
+
+- `TTC_API_KEY`
+- `GEMINI_API_KEY`
+- `GOOGLE_MAPS_API_KEY`
+- `WHAT_IF_API_KEY` (use a real provider key when the simulator is enabled)
+
+The Netlify build runs `npm run build` from `ttc-axios/` and publishes `dist/`.
+Requests under `/api/*` are routed to the serverless function in
+[`netlify/functions/api.ts`](./netlify/functions/api.ts), while the final SPA
+redirect keeps client-side URLs working after refresh. Copy [`.env.example`](./.env.example)
+when setting up a local environment; never commit `.env` or real keys.
+
+Because `GOOGLE_MAPS_API_KEY` is also required by the browser map, configure
+Google Cloud restrictions for the deployed domain and enable the Maps JavaScript,
+Routes and Places APIs required by the app.
+
 ## API
 
 | Call | Request |
