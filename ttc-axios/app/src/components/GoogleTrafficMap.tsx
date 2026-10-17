@@ -30,11 +30,12 @@ function loadGoogleMaps(): Promise<void> {
   return googleMapsPromise;
 }
 
-type Props = { center: LatLng; zoom?: number; onViewportChange?: (center: LatLng, zoom: number) => void };
+type Props = { center: LatLng; zoom?: number; onViewportChange?: (center: LatLng, zoom: number) => void; locale?: "en" | "ka" };
 
 type LocationProps = Props & { userLocation?: LatLng };
 
-export function GoogleTrafficMap({ center, zoom = 12, onViewportChange, userLocation }: LocationProps) {
+export function GoogleTrafficMap({ center, zoom = 12, onViewportChange, userLocation, locale = "en" }: LocationProps) {
+  const labels = locale === "ka" ? { location: "თქვენი მდებარეობა", trafficMap: "რეალური მოძრაობის რუკა", free: "თავისუფალი", slow: "ნელი", congested: "გადატვირთული", mapLegend: "მოძრაობის ლეგენდა" } : { location: "Your location", trafficMap: "Live traffic map", free: "Free", slow: "Slow", congested: "Congested", mapLegend: "Traffic legend" };
   const elementRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<{ setCenter: (point: { lat: number; lng: number }) => void; setZoom: (zoom: number) => void } | null>(null);
   const markerRef = useRef<{ setMap: (map: unknown | null) => void } | null>(null);
@@ -53,7 +54,7 @@ export function GoogleTrafficMap({ center, zoom = 12, onViewportChange, userLoca
         mapRef.current = map;
         const trafficLayer = new window.google.maps.TrafficLayer();
         trafficLayer.setMap(map);
-        if (userLocation) markerRef.current = new window.google.maps.Marker({ map, position: { lat: userLocation[0], lng: userLocation[1] }, title: "Your location" });
+        if (userLocation) markerRef.current = new window.google.maps.Marker({ map, position: { lat: userLocation[0], lng: userLocation[1] }, title: labels.location });
         const reportViewport = () => {
           const currentCenter = map.getCenter();
           onViewportChange?.([currentCenter.lat(), currentCenter.lng()], map.getZoom());
@@ -79,12 +80,12 @@ export function GoogleTrafficMap({ center, zoom = 12, onViewportChange, userLoca
     mapRef.current.setCenter(position);
     mapRef.current.setZoom(Math.max(15, zoom));
     if (markerRef.current) markerRef.current.setMap(null);
-    markerRef.current = new window.google.maps.Marker({ map: mapRef.current, position, title: "Your location" });
+    markerRef.current = new window.google.maps.Marker({ map: mapRef.current, position, title: labels.location });
   }, [userLocation]);
 
   return <div className="google-traffic-map">
-    <div ref={elementRef} className="map" aria-label="Live traffic map" />
+    <div ref={elementRef} className="map" aria-label={labels.trafficMap} />
     {error && <div className="traffic-map-error" role="alert">{error}</div>}
-    <div className="traffic-legend" aria-label="Traffic legend"><span><i className="traffic-green" />Free</span><span><i className="traffic-yellow" />Slow</span><span><i className="traffic-red" />Congested</span></div>
+    <div className="traffic-legend" aria-label={labels.mapLegend}><span><i className="traffic-green" />{labels.free}</span><span><i className="traffic-yellow" />{labels.slow}</span><span><i className="traffic-red" />{labels.congested}</span></div>
   </div>;
 }

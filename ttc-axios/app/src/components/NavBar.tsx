@@ -14,9 +14,10 @@ export function pathForScreen(screen: Screen): string {
 type Props = {
   screen: Screen;
   labels: Record<Screen, string>;
+  navigationLabel?: string;
   onNavigate: (screen: Screen) => void;
 };
 
-export function NavBar({ screen, labels, onNavigate }: Props) {
-  return <nav aria-label="Primary navigation">{screens.map((item) => <button className={screen === item ? "active" : ""} key={item} onClick={() => onNavigate(item)}>{labels[item]}</button>)}</nav>;
+export function NavBar({ screen, labels, navigationLabel = "Primary navigation", onNavigate }: Props) {
+  return <nav aria-label={navigationLabel}>{screens.map((item) => <button className={screen === item ? "active" : ""} key={item} onClick={() => onNavigate(item)}>{labels[item]}</button>)}</nav>;
 }

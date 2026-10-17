@@ -37,6 +37,7 @@ export function Chatbot({ locale, screen, selectedStop, selectedRoute }: Props) 
   const speechFinalRef = useRef("");
   const speechLabels = locale === "ka" ? { microphone: "ხმის ჩართვა", stopListening: "ჩაწერის შეწყვეტა" } : { microphone: "Use microphone", stopListening: "Stop listening" };
   const speechLanguage = locale === "ka" ? "ka-GE" : "en-US";
+  const labels = locale === "ka" ? { chat: "TTC ასისტენტი", close: "ასისტენტის დახურვა", empty: "ჰკითხეთ TTC-ის გაჩერებების, მარშრუტების ან მგზავრობის დაგეგმვის შესახებ.", placeholder: "ჰკითხეთ TTC-ს", send: "გაგზავნა", thinking: "მუშავდება…", unsupported: "ამ ბრაუზერს ხმოვანი შეყვანა არ აქვს მხარდაჭერილი.", speechFailed: "ხმის გაგება ვერ მოხერხდა. სცადეთ თავიდან.", unavailable: "ჩატის სერვისი მიუწვდომელია. გაუშვით TTC proxy `npm run dev` ბრძანებით.", failed: "ჩატის მოთხოვნა ვერ შესრულდა.", timeout: "ჩატის მოთხოვნას დრო ამოეწურა. სცადეთ თავიდან.", cannotHelp: "უკაცრავად, ამ მოთხოვნაში ვერ დაგეხმარებით." } : { chat: "TTC assistant", close: "Close assistant", empty: "Ask about TTC stops, routes, or planning a trip.", placeholder: "Ask about TTC", send: "Send", thinking: "Thinking…", unsupported: "Speech input is not supported by this browser.", speechFailed: "Could not understand speech. Please try again.", unavailable: "Chat service is unavailable. Start the TTC proxy with `npm run dev`.", failed: "Chat request failed.", timeout: "The chat request timed out. Please try again.", cannotHelp: "Sorry, I cannot help you with that request." };
 
   const speechConstructor = () => {
     const speechWindow = window as Window & { SpeechRecognition?: SpeechRecognitionConstructor; webkitSpeechRecognition?: SpeechRecognitionConstructor };
@@ -53,7 +54,7 @@ export function Chatbot({ locale, screen, selectedStop, selectedRoute }: Props) 
     if (listening) { stopListening(); return; }
     const Recognition = speechConstructor();
     if (!Recognition) {
-      setSpeechError("Speech input is not supported by this browser.");
+      setSpeechError(labels.unsupported);
       return;
     }
     setSpeechError("");
@@ -73,7 +74,7 @@ export function Chatbot({ locale, screen, selectedStop, selectedRoute }: Props) 
       setInput(`${speechBaseRef.current} ${speechFinalRef.current} ${interim}`.trim());
     };
     recognition.onerror = () => {
-      setSpeechError("Could not understand speech. Please try again.");
+      setSpeechError(labels.speechFailed);
       setListening(false);
       recognitionRef.current = undefined;
     };
@@ -116,13 +117,13 @@ export function Chatbot({ locale, screen, selectedStop, selectedRoute }: Props) 
       const contentType = response.headers.get("content-type") || "";
       const body = await response.text();
       if (!contentType.includes("application/json")) {
-        throw new Error("Chat service is unavailable. Start the TTC proxy with `npm run dev`.");
+        throw new Error(labels.unavailable);
       }
       const data = JSON.parse(body) as { message?: string };
-      if (!response.ok) throw new Error(data.message || "Chat request failed");
-      setMessages((current) => [...current, { role: "assistant", text: data.message || "Sorry, I cannot help you with that request." }]);
+      if (!response.ok) throw new Error(data.message || labels.failed);
+      setMessages((current) => [...current, { role: "assistant", text: data.message || labels.cannotHelp }]);
     } catch (error) {
-      const message = error instanceof DOMException && error.name === "AbortError" ? "The chat request timed out. Please try again." : error instanceof Error ? error.message : "Chat request failed";
+      const message = error instanceof DOMException && error.name === "AbortError" ? labels.timeout : error instanceof Error ? error.message : labels.failed;
       setMessages((current) => [...current, { role: "assistant", text: message }]);
     } finally {
       window.clearTimeout(timeoutId);
@@ -131,11 +132,11 @@ export function Chatbot({ locale, screen, selectedStop, selectedRoute }: Props) 
   };
 
   return <>
-    <button className="chat-launcher" type="button" aria-expanded={open} aria-controls="ttc-chat-panel" onClick={() => setOpen((value) => !value)}>Chat</button>
-    {open && <aside className="chat-panel" id="ttc-chat-panel" aria-label="TTC assistant">
-      <header><strong>TTC assistant</strong><button type="button" aria-label="Close assistant" onClick={() => setOpen(false)}>×</button></header>
-      <div className="chat-messages" aria-live="polite">{messages.length === 0 && <p className="muted">Ask about TTC stops, routes, or planning a trip.</p>}{messages.map((item, index) => <p className={`chat-message ${item.role}`} key={`${item.role}-${index}`}>{item.text}</p>)}{sending && <p className="muted">Thinking…</p>}</div>
-      <form onSubmit={(event) => { event.preventDefault(); void send(); }}><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask about TTC" aria-label="Message" disabled={sending} /><button className={`mic-button ${listening ? "listening" : ""}`} type="button" onClick={toggleListening} aria-label={listening ? speechLabels.stopListening : speechLabels.microphone} aria-pressed={listening} disabled={sending}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" /></svg></button><button type="submit" disabled={sending || !input.trim()}>Send</button></form>{speechError && <p className="speech-error" role="alert">{speechError}</p>}
+    <button className="chat-launcher" type="button" aria-expanded={open} aria-controls="ttc-chat-panel" onClick={() => setOpen((value) => !value)}>{locale === "ka" ? "ჩატი" : "Chat"}</button>
+    {open && <aside className="chat-panel" id="ttc-chat-panel" aria-label={labels.chat}>
+      <header><strong>{labels.chat}</strong><button type="button" aria-label={labels.close} onClick={() => setOpen(false)}>×</button></header>
+      <div className="chat-messages" aria-live="polite">{messages.length === 0 && <p className="muted">{labels.empty}</p>}{messages.map((item, index) => <p className={`chat-message ${item.role}`} key={`${item.role}-${index}`}>{item.text}</p>)}{sending && <p className="muted">{labels.thinking}</p>}</div>
+      <form onSubmit={(event) => { event.preventDefault(); void send(); }}><input value={input} onChange={(event) => setInput(event.target.value)} placeholder={labels.placeholder} aria-label={labels.placeholder} disabled={sending} /><button className={`mic-button ${listening ? "listening" : ""}`} type="button" onClick={toggleListening} aria-label={listening ? speechLabels.stopListening : speechLabels.microphone} aria-pressed={listening} disabled={sending}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" /></svg></button><button type="submit" disabled={sending || !input.trim()}>{labels.send}</button></form>{speechError && <p className="speech-error" role="alert">{speechError}</p>}
     </aside>}
   </>;
 }
