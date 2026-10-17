@@ -1,9 +1,12 @@
 import cors from "cors";
 import express, { type Request } from "express";
 import { TtcApi, type LatLng, type Locale } from "../api/src/index.js";
+import { runTtcChat, type ChatContext, type ChatTurn } from "../api/src/chatGraph.js";
 
 const apiKey = process.env.TTC_API_KEY;
 if (!apiKey) throw new Error("TTC_API_KEY is required");
+const geminiApiKey = process.env.GEMINI_API_KEY;
+if (!geminiApiKey) throw new Error("GEMINI_API_KEY is required");
 
 const app = express();
 const port = Number(process.env.PORT ?? 8787);
@@ -67,6 +70,28 @@ app.get("/api/ttc/plan", async (req, res, next) => {
       return;
     }
     res.json(await ttc.trips.plan(from, to, locale(req)));
+  } catch (error) { next(error); }
+});
+
+app.post("/api/chat", async (req, res, next) => {
+  try {
+    const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+    if (!message) { res.status(400).json({ message: "A chat message is required" }); return; }
+    const context = req.body?.context as Partial<ChatContext> | undefined;
+    const history: ChatTurn[] = Array.isArray(req.body?.history)
+      ? req.body.history.filter((turn: unknown): turn is ChatTurn => {
+        if (!turn || typeof turn !== "object") return false;
+        const item = turn as Partial<ChatTurn>;
+        return (item.role === "user" || item.role === "assistant") && typeof item.text === "string";
+      })
+      : [];
+    const safeContext: ChatContext = {
+      locale: context?.locale === "ka" ? "ka" : "en",
+      screen: context?.screen === "stops" || context?.screen === "routes" || context?.screen === "live" ? context.screen : "plan",
+      selectedStop: context?.selectedStop,
+      selectedRoute: context?.selectedRoute,
+    };
+    res.json(await runTtcChat(ttc, geminiApiKey, message, safeContext, history));
   } catch (error) { next(error); }
 });
 

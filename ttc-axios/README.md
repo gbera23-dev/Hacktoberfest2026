@@ -20,7 +20,8 @@ From the repository root, make sure `.env` contains the server-only token:
 TTC_API_KEY=your-ttc-api-key
 ```
 
-Then start the application from the `ttc-axios/` directory:
+Then start the application from the `ttc-axios/` directory. Both `npm run dev` and
+`npm run dev:app` start the Vite frontend and the Express proxy together:
 
 ```bash
 npm install

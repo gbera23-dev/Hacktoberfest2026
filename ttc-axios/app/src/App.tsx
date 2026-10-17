@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Bus, BusStop, LatLng, Locale } from "../../api/src/index";
+import { Chatbot } from "./components/Chatbot";
 import { NavBar, pathForScreen, screenFromPath, type Screen } from "./components/NavBar";
 import { TtcMap } from "./components/TtcMap";
 import {
@@ -112,5 +113,5 @@ export default function App() {
       {screen === "stops" && <><TtcMap stops={mapStops} /><StopPanel locale={locale} labels={labels} stops={activeStops} selectedStop={selectedStop} onSelect={setSelectedStop} /></>}
       {screen === "routes" && <RoutePanel locale={locale} labels={labels} routes={activeRoutes} selectedRoute={selectedRoute} onSelect={setSelectedRoute} />}
       {screen === "live" && <section className="live-view"><div className="live-controls"><h2>{labels.live}</h2><select value={selectedRoute?.id ?? ""} onChange={(event) => setSelectedRoute(activeRoutes.find((route) => route.id === event.target.value))}><option value="">{labels.chooseRoute}</option>{activeRoutes.map((route) => <option value={route.id} key={route.id}>{route.shortName} · {route.longName}</option>)}</select><p className="muted">Live positions refresh every 15 seconds.</p>{livePositions.error && <ErrorMessage error={livePositions.error} />}</div><TtcMap stops={selectedRoute ? liveRouteStops.data : mapStops} routeStops={selectedRoute ? liveRouteStops.data : undefined} positions={livePositions.data} /></section>}
-    </main></div>;
+    </main><Chatbot locale={locale} screen={screen} selectedStop={selectedStop} selectedRoute={selectedRoute} /></div>;
 }

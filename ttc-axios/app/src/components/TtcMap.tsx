@@ -37,7 +37,7 @@ export function TtcMap({ stops = [], routeStops = [], positions = [], from, to, 
       />
       <MapClick onPick={onPick} />
       <div className="map-legend" aria-label="Map legend"><span><i className="legend-icon legend-bus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v10H3V7a2 2 0 0 1 2-2Z"/><circle cx="7" cy="14" r="1.3"/><circle cx="17" cy="14" r="1.3"/></svg></i>Bus</span><span><i className="legend-icon legend-subway">M</i>Metro</span><span><i className="legend-icon legend-gondola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M12 6v4"/><path d="M7 10h10l-1 7H8l-1-7Z"/></svg></i>Gondola</span></div>
-      {visibleStops.map((stop) => <Marker key={stop.id} position={[stop.lat, stop.lon]} icon={stopIcons[stop.vehicleMode]}><Popup><strong>{stop.name}</strong><br />{modeLabels[stop.vehicleMode]}{stop.code && <><br />{stop.code}</>}</Popup></Marker>)}
+      {visibleStops.map((stop, index) => <Marker key={`${stop.id}-${index}`} position={[stop.lat, stop.lon]} icon={stopIcons[stop.vehicleMode]}><Popup><strong>{stop.name}</strong><br />{modeLabels[stop.vehicleMode]}{stop.code && <><br />{stop.code}</>}</Popup></Marker>)}
       {routeLine.length > 1 && <Polyline positions={routeLine} pathOptions={{ color: "#f97316", weight: 5 }} />}
       {positions.map((position, index) => <CircleMarker key={`${position.lat}-${position.lon}-${index}`} center={[position.lat, position.lon]} radius={7} pathOptions={{ color: "#dc2626", fillColor: "#ef4444", fillOpacity: 1 }} />)}
       {from && <CircleMarker center={from} radius={9} pathOptions={{ color: "#16a34a", fillColor: "#22c55e", fillOpacity: 1 }} />}
