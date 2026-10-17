@@ -42,7 +42,7 @@ function StopPanel({ locale, labels, stops, selectedStop, onSelect }: { locale: 
         <h3>{labels.departures}</h3>
         {arrivals.isLoading && <p className="muted">{labels.loading}</p>}
         {arrivals.error && <ErrorMessage error={arrivals.error} />}
-        <div className="arrivals">{arrivals.data?.map((arrival, index) => <div className="arrival" key={`${arrival.shortName}-${index}`}><span className="route-badge" style={{ background: arrival.color || "#0f766e" }}>{arrival.shortName}</span><strong>{arrival.realtimeArrivalMinutes} {labels.minutes}</strong><span>{arrival.headsign}</span><small>{arrival.realtime ? labels.realtime : labels.scheduled}</small></div>)}</div>
+        <div className="arrivals">{arrivals.data?.map((arrival, index) => <div className="arrival" key={`${arrival.shortName}-${index}`}><span className="arrival-route" aria-label={`Bus ${arrival.shortName}, ${arrival.realtimeArrivalMinutes} ${labels.minutes}`}><span className="route-badge" style={{ background: arrival.color || "#0f766e" }}>{arrival.shortName}</span><strong>Bus {arrival.shortName} · {arrival.realtimeArrivalMinutes} {labels.minutes}</strong></span><span>{arrival.headsign}</span><small>{arrival.realtime ? <><span className="realtime-signal" aria-label={labels.realtime}><i /><i /><i /></span>{labels.realtime}</> : labels.scheduled}</small></div>)}</div>
         <h3>Routes</h3>
         {stopRoutes.data?.map((route) => <span className="route-chip" key={route.id}>{route.shortName} · {route.longName}</span>)}
       </>}
@@ -110,7 +110,7 @@ export default function App() {
     <main className="content"><div className="page-heading"><div><span className="eyebrow">TTC · Tbilisi</span><h1>{labels[screen]}</h1></div><span className="status-dot"><i /> {stops.isFetching ? labels.loading : `${activeStops.length} ${labels.stopsLoaded}`}</span></div>
       {stops.error && <ErrorMessage error={stops.error} />}
       {screen === "plan" && <Planner locale={locale} labels={labels} stops={mapStops} />}
-      {screen === "stops" && <><TtcMap stops={mapStops} /><StopPanel locale={locale} labels={labels} stops={activeStops} selectedStop={selectedStop} onSelect={setSelectedStop} /></>}
+      {screen === "stops" && <><TtcMap stops={mapStops} onStopSelect={setSelectedStop} /><StopPanel locale={locale} labels={labels} stops={activeStops} selectedStop={selectedStop} onSelect={setSelectedStop} /></>}
       {screen === "routes" && <RoutePanel locale={locale} labels={labels} routes={activeRoutes} selectedRoute={selectedRoute} onSelect={setSelectedRoute} />}
       {screen === "live" && <section className="live-view"><div className="live-controls"><h2>{labels.live}</h2><select value={selectedRoute?.id ?? ""} onChange={(event) => setSelectedRoute(activeRoutes.find((route) => route.id === event.target.value))}><option value="">{labels.chooseRoute}</option>{activeRoutes.map((route) => <option value={route.id} key={route.id}>{route.shortName} · {route.longName}</option>)}</select><p className="muted">Live positions refresh every 15 seconds.</p>{livePositions.error && <ErrorMessage error={livePositions.error} />}</div><TtcMap stops={selectedRoute ? liveRouteStops.data : mapStops} routeStops={selectedRoute ? liveRouteStops.data : undefined} positions={livePositions.data} /></section>}
     </main><Chatbot locale={locale} screen={screen} selectedStop={selectedStop} selectedRoute={selectedRoute} /></div>;

@@ -64,8 +64,14 @@ h3 { font-size: 13px; color: #4c6059; text-transform: uppercase; letter-spacing:
 .detail-heading h2 { margin: 5px 0 0; }
 .mode-pill, .route-chip { display: inline-block; border-radius: 999px; background: #e7f5ef; color: #087f5b; padding: 5px 9px; font-size: 11px; font-weight: 700; }
 .arrivals { display: grid; gap: 6px; }
-.arrival { display: grid; grid-template-columns: 48px 54px 1fr auto; gap: 9px; align-items: center; border-bottom: 1px solid #eef2f0; padding: 10px 0; font-size: 13px; }
+.arrival { display: grid; grid-template-columns: minmax(205px, auto) 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid #eef2f0; padding: 10px 0; font-size: 13px; }
+.arrival-route { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .arrival small { color: #8a9892; font-size: 10px; }
+.realtime-signal { display: inline-flex; flex-direction: column; justify-content: center; vertical-align: middle; width: 15px; height: 15px; margin-right: 4px; transform: rotate(-45deg); }
+.realtime-signal i { display: block; width: 4px; height: 4px; margin: 1px auto; border: 2px solid #36a832; border-left-color: transparent; border-bottom-color: transparent; border-radius: 50%; opacity: .35; animation: realtime-wave 1.4s ease-in-out infinite; }
+.realtime-signal i:nth-child(2) { width: 8px; height: 8px; animation-delay: .18s; }
+.realtime-signal i:nth-child(3) { width: 12px; height: 12px; animation-delay: .36s; }
+@keyframes realtime-wave { 0%, 100% { opacity: .3; } 45% { opacity: 1; } }
 .route-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; border-radius: 6px; color: white; padding: 4px 7px; font-size: 11px; font-weight: 800; }
 .route-chip { margin: 0 5px 5px 0; }
 .empty { display: grid; place-items: center; height: 100%; min-height: 300px; color: #8a9892; }
