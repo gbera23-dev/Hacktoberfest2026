@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { ttc } from "../ttc";
 import type { LatLng, Locale } from "../../../api/src/index";
 
@@ -47,6 +47,15 @@ export const useRoutePositions = (routeId: string | undefined, forward: boolean)
   queryFn: () => ttc.routes.positions(routeId!, forward),
   enabled: Boolean(routeId),
   refetchInterval: 15_000,
+});
+
+export const useStopRoutePositions = (routes: { id: string }[] | undefined, locale: Locale) => useQueries({
+  queries: (routes ?? []).map((route) => ({
+    queryKey: ["stop-route-positions", route.id, locale],
+    queryFn: () => ttc.routes.positions(route.id, true),
+    enabled: Boolean(route.id),
+    refetchInterval: 15_000,
+  })),
 });
 
 export const useTripPlan = (from: LatLng | undefined, to: LatLng | undefined, locale: Locale) => useQuery({

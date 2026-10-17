@@ -9,14 +9,15 @@ import {
   useRouteStops,
   useRoutes,
   useStopArrivals,
+  useStopRoutePositions,
   useStopRoutes,
   useStops,
   useTripPlan,
 } from "./hooks/useTtcQueries";
 
 const text = {
-  en: { plan: "Plan a trip", stops: "Stops & arrivals", routes: "Routes", live: "Live buses", search: "Search stops", choose: "Choose a stop", chooseRoute: "Choose a route", loading: "Loading…", noData: "No data found", select: "Select", from: "From", to: "To", clickMap: "Click the map to set a location", setFrom: "Set origin", setTo: "Set destination", clear: "Clear", minutes: "min", realtime: "Live", scheduled: "Scheduled", departures: "Upcoming arrivals", map: "Network map", stopsLoaded: "stops loaded", noToken: "The proxy server must be running." },
-  ka: { plan: "მარშრუტის დაგეგმვა", stops: "გაჩერებები და მოსვლები", routes: "მარშრუტები", live: "ავტობუსები რეალურ დროში", search: "გაჩერების ძიება", choose: "აირჩიეთ გაჩერება", chooseRoute: "აირჩიეთ მარშრუტი", loading: "იტვირთება…", noData: "მონაცემები ვერ მოიძებნა", select: "არჩევა", from: "საწყისი", to: "დანიშნულება", clickMap: "ადგილმდებარეობის ასარჩევად დააჭირეთ რუკას", setFrom: "საწყისი", setTo: "დანიშნულება", clear: "გასუფთავება", minutes: "წთ", realtime: "რეალური", scheduled: "გეგმიური", departures: "მოსალოდნელი ავტობუსები", map: "ქსელის რუკა", stopsLoaded: "გაჩერება ჩაიტვირთა", noToken: "პროქსი სერვერი გაშვებული უნდა იყოს." },
+  en: { plan: "Plan a trip", stops: "Stops & arrivals", routes: "Routes", live: "Live buses", search: "Search stops", choose: "Choose a stop", chooseRoute: "Choose a route", loading: "Loading…", noData: "No data found", select: "Select", from: "From", to: "To", clickMap: "Click the map to set a location", setFrom: "Set origin", setTo: "Set destination", clear: "Clear", minutes: "min", realtime: "Live", scheduled: "Scheduled", departures: "Upcoming arrivals", map: "Network map", stopsLoaded: "stops loaded", noToken: "The proxy server must be running.", avgVelocity: "avg. km/h" },
+  ka: { plan: "მარშრუტის დაგეგმვა", stops: "გაჩერებები და მოსვლები", routes: "მარშრუტები", live: "ავტობუსები რეალურ დროში", search: "გაჩერების ძიება", choose: "აირჩიეთ გაჩერება", chooseRoute: "აირჩიეთ მარშრუტი", loading: "იტვირთება…", noData: "მონაცემები ვერ მოიძებნა", select: "არჩევა", from: "საწყისი", to: "დანიშნულება", clickMap: "ადგილმდებარეობის ასარჩევად დააჭირეთ რუკას", setFrom: "საწყისი", setTo: "დანიშნულება", clear: "გასუფთავება", minutes: "წთ", realtime: "რეალური", scheduled: "გეგმიური", departures: "მოსალოდნელი ავტობუსები", map: "ქსელის რუკა", stopsLoaded: "გაჩერება ჩაიტვირთა", noToken: "პროქსი სერვერი გაშვებული უნდა იყოს.", avgVelocity: "საშ. კმ/სთ" },
 } as const;
 type Labels = { [Key in keyof typeof text.en]: string };
 
@@ -28,7 +29,23 @@ function StopPanel({ locale, labels, stops, selectedStop, onSelect }: { locale: 
   const [search, setSearch] = useState("");
   const arrivals = useStopArrivals(selectedStop?.id, locale);
   const stopRoutes = useStopRoutes(selectedStop?.id, locale);
+  const arrivalRouteNames = new Set(arrivals.data?.map((arrival) => arrival.shortName));
+  const arrivalRoutes = stopRoutes.data?.filter((route) => arrivalRouteNames.has(route.shortName));
+  const routePositions = useStopRoutePositions(arrivalRoutes, locale);
   const filtered = useMemo(() => stops.filter((stop) => `${stop.name} ${stop.code ?? ""}`.toLowerCase().includes(search.toLowerCase())).slice(0, 80), [stops, search]);
+  const velocityFor = (shortName: string, minutes: number) => {
+    if (!selectedStop || minutes <= 0) return undefined;
+    const routeIndex = arrivalRoutes?.findIndex((route) => route.shortName === shortName) ?? -1;
+    const positions = routeIndex >= 0 ? routePositions[routeIndex]?.data : undefined;
+    if (!positions?.length) return undefined;
+    const nearest = positions.reduce((best, position) => {
+      const bestDistance = Math.hypot((best.lat - selectedStop.lat) * 111, (best.lon - selectedStop.lon) * 83);
+      const distance = Math.hypot((position.lat - selectedStop.lat) * 111, (position.lon - selectedStop.lon) * 83);
+      return distance < bestDistance ? position : best;
+    });
+    const distanceKm = Math.hypot((nearest.lat - selectedStop.lat) * 111, (nearest.lon - selectedStop.lon) * 83);
+    return Math.round((distanceKm / (minutes / 60)) * 10) / 10;
+  };
 
   return <section className="split-panel">
     <div className="panel-list">
@@ -42,7 +59,7 @@ function StopPanel({ locale, labels, stops, selectedStop, onSelect }: { locale: 
         <h3>{labels.departures}</h3>
         {arrivals.isLoading && <p className="muted">{labels.loading}</p>}
         {arrivals.error && <ErrorMessage error={arrivals.error} />}
-        <div className="arrivals">{arrivals.data?.map((arrival, index) => <div className="arrival" key={`${arrival.shortName}-${index}`}><span className="arrival-route" aria-label={`Bus ${arrival.shortName}, ${arrival.realtimeArrivalMinutes} ${labels.minutes}`}><span className="route-badge" style={{ background: arrival.color || "#0f766e" }}>{arrival.shortName}</span><strong>Bus {arrival.shortName} · {arrival.realtimeArrivalMinutes} {labels.minutes}</strong></span><span>{arrival.headsign}</span><small>{arrival.realtime ? <><span className="realtime-signal" aria-label={labels.realtime}><i /><i /><i /></span>{labels.realtime}</> : labels.scheduled}</small></div>)}</div>
+        <div className="arrivals">{arrivals.data?.map((arrival, index) => { const velocity = velocityFor(arrival.shortName, arrival.realtimeArrivalMinutes); return <div className="arrival" key={`${arrival.shortName}-${index}`}><span className="arrival-route" aria-label={`Bus ${arrival.shortName}, ${arrival.realtimeArrivalMinutes} ${labels.minutes}`}><span className="route-badge" style={{ background: arrival.color || "#0f766e" }}>{arrival.shortName}</span><strong>Bus {arrival.shortName} · {arrival.realtimeArrivalMinutes} {labels.minutes}</strong></span><span>{arrival.headsign}</span><small>{arrival.realtime ? <><span className="realtime-signal" aria-label={labels.realtime}><i /><i /><i /></span>{labels.realtime}</> : labels.scheduled}{velocity !== undefined && <span className="velocity"> · {velocity} {labels.avgVelocity}</span>}</small></div>; })}</div>
         <h3>Routes</h3>
         {stopRoutes.data?.map((route) => <span className="route-chip" key={route.id}>{route.shortName} · {route.longName}</span>)}
       </>}

@@ -2,13 +2,47 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { BusPlan, BusStop, Locale } from "./types.js";
+import type { Bus, BusPlan, BusStop, Locale } from "./types.js";
 import type { TtcApi } from "./TtcApi.js";
 
 const localeSchema = z.enum(["en", "ka"]).default("en");
 
 function result(value: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(value) }] };
+}
+
+type StaticCache = { stops: Map<Locale, Promise<BusStop[]>>; routes: Map<Locale, Promise<Bus[]>> };
+const staticCaches = new WeakMap<TtcApi, StaticCache>();
+
+function cacheFor(ttc: TtcApi): StaticCache {
+  const existing = staticCaches.get(ttc);
+  if (existing) return existing;
+  const cache: StaticCache = { stops: new Map(), routes: new Map() };
+  staticCaches.set(ttc, cache);
+  return cache;
+}
+
+function compactStop(stop: BusStop) {
+  return { id: stop.id, code: stop.code, name: stop.name, vehicleMode: stop.vehicleMode, lat: stop.lat, lon: stop.lon };
+}
+
+function compactPlan(plan: BusPlan) {
+  return {
+    itineraries: plan.itineraries.slice(0, 3).map((itinerary) => ({
+      durationMinutes: Math.round(itinerary.duration / 60),
+      walkMinutes: Math.round(itinerary.walkTime / 60),
+      walkDistanceMeters: Math.round(itinerary.walkDistance),
+      legs: itinerary.legs.map((leg) => ({
+        mode: leg.mode,
+        durationMinutes: Math.round(leg.duration / 60),
+        distanceMeters: Math.round(leg.distance),
+        route: leg.route && { shortName: leg.route.shortName, longName: leg.route.longName, mode: leg.route.mode },
+        from: leg.from.name,
+        to: leg.to.name,
+        intermediateStops: leg.intermediateStops?.slice(0, 8).map((stop) => stop.name) ?? [],
+      })),
+    })),
+  };
 }
 
 function searchStops(stops: BusStop[], query: string) {
@@ -29,15 +63,25 @@ function searchStops(stops: BusStop[], query: string) {
 
 async function buildMcpServer(ttc: TtcApi) {
   const server = new McpServer({ name: "ttc-transit-tools", version: "1.0.0" });
-  const stopCache = new Map<Locale, BusStop[]>();
+  const cache = cacheFor(ttc);
   const stopsFor = async (locale: Locale) => {
-    const cached = stopCache.get(locale);
+    const cached = cache.stops.get(locale);
     if (cached) return cached;
-    const stops = await ttc.stops.list(locale);
-    stopCache.set(locale, stops);
-    return stops;
+    const request = ttc.stops.list(locale).catch((error) => { cache.stops.delete(locale); throw error; });
+    cache.stops.set(locale, request);
+    return request;
   };
-  const stopsForSearch = async (locale: Locale) => [...await stopsFor(locale), ...await stopsFor(locale === "en" ? "ka" : "en")];
+  const routesFor = async (locale: Locale) => {
+    const cached = cache.routes.get(locale);
+    if (cached) return cached;
+    const request = ttc.routes.list(locale).catch((error) => { cache.routes.delete(locale); throw error; });
+    cache.routes.set(locale, request);
+    return request;
+  };
+  const stopsForSearch = async (locale: Locale) => {
+    const [primary, secondary] = await Promise.all([stopsFor(locale), stopsFor(locale === "en" ? "ka" : "en")]);
+    return [...primary, ...secondary];
+  };
 
   server.registerTool("search_stops", {
     title: "Search TTC stops",
@@ -56,7 +100,7 @@ async function buildMcpServer(ttc: TtcApi) {
     description: "Count registered TTC routes and stops by transport mode.",
     inputSchema: { locale: localeSchema },
   }, async ({ locale }) => {
-    const [stops, routes] = await Promise.all([stopsFor(locale), ttc.routes.list(locale)]);
+    const [stops, routes] = await Promise.all([stopsFor(locale), routesFor(locale)]);
     const stopsByMode = stops.reduce<Record<string, number>>((counts, stop) => {
       counts[stop.vehicleMode] = (counts[stop.vehicleMode] ?? 0) + 1;
       return counts;
@@ -73,7 +117,7 @@ async function buildMcpServer(ttc: TtcApi) {
     description: "Find TTC bus routes by route number or name.",
     inputSchema: { query: z.string().optional(), locale: localeSchema },
   }, async ({ query, locale }) => {
-    const routes = await ttc.routes.list(locale);
+    const routes = await routesFor(locale);
     const needle = query?.trim().toLocaleLowerCase();
     return result({ routes: (needle ? routes.filter((route) => `${route.shortName} ${route.longName}`.toLocaleLowerCase().includes(needle)) : routes).slice(0, 30) });
   });
@@ -95,7 +139,7 @@ async function buildMcpServer(ttc: TtcApi) {
     const destination = resolve(to);
     if (!origin.point || !destination.point) return result({ needsSelection: true, from: origin, to: destination });
     const plan: BusPlan = await ttc.trips.plan(origin.point, destination.point, locale);
-    return result({ from: origin.stop ?? { lat: origin.point[0], lon: origin.point[1] }, to: destination.stop ?? { lat: destination.point[0], lon: destination.point[1] }, plan });
+    return result({ from: origin.stop ? compactStop(origin.stop) : { lat: origin.point[0], lon: origin.point[1] }, to: destination.stop ? compactStop(destination.stop) : { lat: destination.point[0], lon: destination.point[1] }, plan: compactPlan(plan) });
   });
 
   return server;
