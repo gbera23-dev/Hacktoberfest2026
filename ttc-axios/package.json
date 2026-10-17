@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "tsx test/api.test.ts && tsx test/google-maps.test.ts && tsx test/velocity.test.ts",
+    "test": "tsx test/api.test.ts && tsx test/google-maps.test.ts && tsx test/mcp.test.ts && tsx test/velocity.test.ts",
     "test:google-live": "node --env-file=../.env --import tsx test/google-maps.live.test.ts",
     "test:live": "node --env-file=../.env --import tsx test/live-api.test.ts",
     "server": "node --env-file=../.env --import tsx server/index.ts",

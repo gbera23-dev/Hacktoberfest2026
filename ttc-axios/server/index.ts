@@ -1,6 +1,6 @@
 import cors from "cors";
 import express, { type Request } from "express";
-import { TtcApi, type LatLng, type Locale } from "../api/src/index.js";
+import { GoogleMapsApi, TtcApi, type LatLng, type Locale } from "../api/src/index.js";
 import { runTtcChat, type ChatContext, type ChatTurn } from "../api/src/chatGraph.js";
 
 const apiKey = process.env.TTC_API_KEY;
@@ -11,6 +11,7 @@ if (!geminiApiKey) throw new Error("GEMINI_API_KEY is required");
 const app = express();
 const port = Number(process.env.PORT ?? 8787);
 const ttc = new TtcApi({ apiKey });
+const googleMaps = process.env.GOOGLE_MAPS_API_KEY ? new GoogleMapsApi({ apiKey: process.env.GOOGLE_MAPS_API_KEY, useMockFallback: process.env.GOOGLE_MAPS_USE_MOCK === "true" }) : undefined;
 
 app.use(cors({ origin: process.env.APP_ORIGIN ?? "http://localhost:5173" }));
 app.use(express.json());
@@ -91,7 +92,7 @@ app.post("/api/chat", async (req, res, next) => {
       selectedStop: context?.selectedStop,
       selectedRoute: context?.selectedRoute,
     };
-    res.json(await runTtcChat(ttc, geminiApiKey, message, safeContext, history));
+    res.json(await runTtcChat(ttc, geminiApiKey, message, safeContext, history, googleMaps));
   } catch (error) { next(error); }
 });
 

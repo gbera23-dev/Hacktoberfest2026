@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { Bus, BusPlan, BusStop, Locale } from "./types.js";
 import type { TtcApi } from "./TtcApi.js";
+import type { GoogleMapsApi } from "./GoogleMapsApi.js";
 
 const localeSchema = z.enum(["en", "ka"]).default("en");
 
@@ -45,23 +46,33 @@ function compactPlan(plan: BusPlan) {
   };
 }
 
+function compactGeocode(result: { placeId: string; formattedAddress: string; location: { latitude: number; longitude: number }; types: string[] }) {
+  return { placeId: result.placeId, address: result.formattedAddress, lat: result.location.latitude, lon: result.location.longitude, types: result.types };
+}
+
 function searchStops(stops: BusStop[], query: string) {
   const needle = query.trim().toLocaleLowerCase();
   const terms = needle.split(/[^\p{L}\p{N}]+/u).filter((term) => term.length > 2 && !["the", "of", "and", "street", "st"].includes(term));
+  const genericTerms = new Set(["metro", "station", "stop", "bus", "university", "street", "tbilisi", "city"]);
+  const meaningfulTerms = terms.filter((term) => !genericTerms.has(term));
+  const rankingTerms = meaningfulTerms.length > 0 ? meaningfulTerms : terms;
   return stops.map((stop) => {
     const text = `${stop.name} ${stop.code ?? ""} ${stop.vehicleMode}`.toLocaleLowerCase();
+    const candidateTokens = text.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
     const exactScore = needle && text.includes(needle) ? 1000 : 0;
-    const tokenScore = terms.reduce((score, term) => {
+    const tokenScore = rankingTerms.reduce((score, term) => {
       const variants = [term, term.replace(/(იდან|ამდე|მდე|თან|თვის|ზე|ში|ის|ებს|ს)$/u, ""), term.slice(0, Math.max(4, Math.ceil(term.length * 0.6)))];
-      return score + Math.max(...variants.filter((variant) => variant.length > 2 && text.includes(variant)).map((variant) => variant.length), 0);
+      const matchedVariants = variants.filter((variant) => variant.length > 2 && candidateTokens.some((candidate) => candidate === variant || (term.length >= 5 && candidate.startsWith(variant))));
+      return score + Math.max(...matchedVariants.map((variant) => variant.length), 0);
     }, 0);
     const metroQuery = /metro|subway|მეტრო/i.test(needle);
-    const metroScore = metroQuery && (stop.vehicleMode === "SUBWAY" || /m\/s|მ\/ს/i.test(stop.name)) ? 100 : 0;
-    return { stop, score: exactScore + tokenScore + metroScore };
+    const metroScore = metroQuery && stop.vehicleMode === "SUBWAY" ? 100 : 0;
+    const meaningfulMatch = meaningfulTerms.length === 0 || meaningfulTerms.some((term) => candidateTokens.some((candidate) => candidate === term || (term.length >= 5 && candidate.startsWith(term))));
+    return { stop, score: meaningfulMatch ? exactScore + tokenScore + metroScore : 0 };
   }).filter(({ score }) => score > 0).sort((left, right) => right.score - left.score).slice(0, 20).map(({ stop }) => stop);
 }
 
-async function buildMcpServer(ttc: TtcApi) {
+async function buildMcpServer(ttc: TtcApi, googleMaps?: GoogleMapsApi) {
   const server = new McpServer({ name: "ttc-transit-tools", version: "1.0.0" });
   const cache = cacheFor(ttc);
   const stopsFor = async (locale: Locale) => {
@@ -81,6 +92,17 @@ async function buildMcpServer(ttc: TtcApi) {
   const stopsForSearch = async (locale: Locale) => {
     const [primary, secondary] = await Promise.all([stopsFor(locale), stopsFor(locale === "en" ? "ka" : "en")]);
     return [...primary, ...secondary];
+  };
+
+  const geocode = async (query: string, locale: Locale) => {
+    if (!googleMaps) return undefined;
+    try {
+      const response = await googleMaps.geocoding.geocode(query, { language: locale, region: "ge" });
+      const first = response.results[0];
+      return first ? compactGeocode(first) : undefined;
+    } catch {
+      return undefined;
+    }
   };
 
   server.registerTool("search_stops", {
@@ -122,31 +144,38 @@ async function buildMcpServer(ttc: TtcApi) {
     return result({ routes: (needle ? routes.filter((route) => `${route.shortName} ${route.longName}`.toLocaleLowerCase().includes(needle)) : routes).slice(0, 30) });
   });
 
+  server.registerTool("geocode_place", {
+    title: "Geocode a destination",
+    description: "Resolve a landmark, university, mall, public place, street, or other destination in or near Tbilisi to coordinates.",
+    inputSchema: { query: z.string().min(1), locale: localeSchema },
+  }, async ({ query, locale }) => result({ place: await geocode(query, locale) }));
+
   server.registerTool("plan_trip", {
     title: "Plan a TTC trip",
     description: "Plan a trip between two TTC stop names, stop codes, or lat,lon coordinates.",
     inputSchema: { from: z.string().min(1), to: z.string().min(1), locale: localeSchema },
   }, async ({ from, to, locale }) => {
     const stops = await stopsForSearch(locale);
-    const resolve = (place: string) => {
+    const resolve = async (place: string) => {
       const coordinates = place.split(",").map(Number);
       if (coordinates.length === 2 && coordinates.every(Number.isFinite)) return { point: coordinates as [number, number] };
       const matches = searchStops(stops, place);
-      if (matches.length === 0) return { matches: [] };
-      return { point: [matches[0].lat, matches[0].lon] as [number, number], stop: matches[0], alternatives: matches.slice(1, 5).map(({ id, code, name, lat, lon, vehicleMode }) => ({ id, code, name, lat, lon, vehicleMode })) };
+      if (matches.length > 0) return { point: [matches[0].lat, matches[0].lon] as [number, number], stop: matches[0], alternatives: matches.slice(1, 5).map(({ id, code, name, lat, lon, vehicleMode }) => ({ id, code, name, lat, lon, vehicleMode })) };
+      const placeResult = await geocode(place, locale);
+      if (placeResult) return { point: [placeResult.lat, placeResult.lon] as [number, number], place: placeResult };
+      return { matches: [] };
     };
-    const origin = resolve(from);
-    const destination = resolve(to);
+    const [origin, destination] = await Promise.all([resolve(from), resolve(to)]);
     if (!origin.point || !destination.point) return result({ needsSelection: true, from: origin, to: destination });
     const plan: BusPlan = await ttc.trips.plan(origin.point, destination.point, locale);
-    return result({ from: origin.stop ? compactStop(origin.stop) : { lat: origin.point[0], lon: origin.point[1] }, to: destination.stop ? compactStop(destination.stop) : { lat: destination.point[0], lon: destination.point[1] }, plan: compactPlan(plan) });
+    return result({ from: origin.stop ? compactStop(origin.stop) : origin.place ?? { lat: origin.point[0], lon: origin.point[1] }, to: destination.stop ? compactStop(destination.stop) : destination.place ?? { lat: destination.point[0], lon: destination.point[1] }, plan: compactPlan(plan) });
   });
 
   return server;
 }
 
-export async function connectTtcMcp(ttc: TtcApi) {
-  const server = await buildMcpServer(ttc);
+export async function connectTtcMcp(ttc: TtcApi, googleMaps?: GoogleMapsApi) {
+  const server = await buildMcpServer(ttc, googleMaps);
   const client = new Client({ name: "ttc-transit-chatbot", version: "1.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
