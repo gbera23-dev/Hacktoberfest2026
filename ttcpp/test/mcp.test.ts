@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
-import { connectTtcMcp } from "../api/src/mcp.js";
-import type { GoogleMapsApi } from "../api/src/GoogleMapsApi.js";
-import type { BusPlan, BusStop } from "../api/src/types.js";
-import type { TtcApi } from "../api/src/TtcApi.js";
+import { connectTtcMcp } from "../shared/api/src/mcp.js";
+import type { GoogleMapsApi } from "../shared/api/src/GoogleMapsApi.js";
+import type { BusPlan, BusStop } from "../shared/api/src/types.js";
+import type { TtcApi } from "../shared/api/src/TtcApi.js";
 
 const didubeMetro: BusStop = { id: "1:metro_1_5", code: null, name: "M/S Didube", vehicleMode: "SUBWAY", lat: 41.749767, lon: 44.779989 };
 const stationSquare: BusStop = { id: "1:metro_1_8", code: null, name: "M/S Station Square 1", vehicleMode: "SUBWAY", lat: 41.722098, lon: 44.797739 };

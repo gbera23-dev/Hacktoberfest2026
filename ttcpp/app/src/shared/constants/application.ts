@@ -1,0 +1,7 @@
+export const BUS_STOP_MARKER_LIMIT = 250;
+export const WHAT_IF_DEPARTURE_OFFSETS_MINUTES = [0, 10, 20, 30] as const;
+export const STOP_ALERT_THRESHOLDS_MINUTES = [3, 5, 10] as const;
+export const STOP_ALERT_TRAFFIC_SURGE_MINUTES = 5;
+export const CHAT_REQUEST_TIMEOUT_MS = 25_000;
+export const STOP_ALERT_DEFAULT_THRESHOLD_MINUTES = 5;
+export const STOP_ALERT_RECENT_LIMIT = 3;

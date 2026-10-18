@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { LatLng } from "../../../api/src/index";
+import type { LatLng } from "../../../../shared/api/src/index";
 
 let googleMapsPromise: Promise<void> | undefined;
 

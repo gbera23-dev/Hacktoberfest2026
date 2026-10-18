@@ -1,0 +1,36 @@
+
+.live-controls { background: #fff; border: 1px solid #e3ebe7; border-radius: 18px; padding: 22px; }
+.live-controls select { width: 100%; border: 1px solid #dce6e1; border-radius: 10px; padding: 11px 12px; outline: none; background: #fbfdfc; }
+.live-controls select:focus { border-color: #087f5b; box-shadow: 0 0 0 3px #087f5b12; }
+.live-view { display: grid; grid-template-columns: minmax(240px, .45fr) 1.55fr; min-height: 560px; gap: 20px; }
+.live-controls select { margin: 12px 0; }
+@media (max-width: 820px) { .live-view { grid-template-columns: 1fr; } }
+@media (max-width: 820px) { .live-view .map { min-height: 420px; } }
+.live-controls { border-color: var(--line); border-radius: 22px; box-shadow: var(--shadow-soft); }
+.live-controls { background: rgba(255, 255, 255, .82); }
+.live-controls select { border-color: var(--line); background: #fbfefc; transition: border-color .2s ease, box-shadow .2s ease; }
+.live-controls select:focus { border-color: #56b593; box-shadow: 0 0 0 4px #16846616; }
+@media (max-width: 820px) {
+  .live-controls { padding: 17px; border-radius: 18px; } }
+html[data-theme="dark"] .live-controls { background: #142d26; }
+html[data-theme="dark"] .live-controls select { background: #10251f; color: var(--ink); }
+html[data-theme="dark"] .live-controls { color: var(--ink); background: #142d26; border-color: var(--line); }
+html[data-theme="dark"] .live-controls select { color: var(--ink); background: #10251f; border-color: #315348; }
+.live-controls { background: #fff; }
+.live-view { width: 100%; min-width: 0; align-items: stretch; }
+.live-controls { min-width: 0; }
+.live-view { grid-template-columns: minmax(260px, .48fr) minmax(0, 1.52fr); min-height: 600px; }
+.live-controls { height: fit-content; }
+.live-view > .map-shell { min-width: 0; min-height: 600px; }
+@media (max-width: 820px) {
+  .live-view { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 14px; } }
+@media (max-width: 820px) {
+  .live-controls { width: 100%; min-width: 0; padding: 16px; border-radius: 17px; } }
+@media (max-width: 820px) {
+  .live-view > .map-shell { width: 100%; min-width: 0; min-height: min(58svh, 430px); height: min(58svh, 430px); margin-bottom: 0; } }
+@media (max-width: 820px) {
+  .live-view { min-height: 0; } }
+@media (max-width: 820px) {
+  .live-view > .map-shell { min-height: 430px; } }
+html[data-theme="dark"] .live-controls { background: #142d26; }
+html[data-theme="dark"] .live-controls select { background: #10251f; color: var(--ink); }

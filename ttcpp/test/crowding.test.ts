@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { BusArrival, BusStop } from "../api/src/index";
-import { estimateCrowding } from "../app/src/utils/crowding";
+import type { BusArrival, BusStop } from "../shared/api/src/index";
+import { estimateCrowding } from "../app/src/shared/utils/crowding";
 
 const stop: BusStop = { id: "1", code: "1001", name: "Didube Metro Station", lat: 41.75, lon: 44.78, vehicleMode: "BUS" };
 const arrival = (minutes: number, realtime = true): BusArrival => ({ shortName: "338", color: "#087f5b", headsign: "Free University", realtime, realtimeArrivalMinutes: minutes, scheduledArrivalMinutes: minutes });

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import http from "node:http";
-import { GoogleMapsApi, summarizeGoogleTransitRoutes } from "../api/src/index.js";
+import { GoogleMapsApi, summarizeGoogleTransitRoutes } from "../shared/api/src/index.js";
 
 const seen: { path: string; apiKey?: string; fieldMask?: string }[] = [];
 const server = http.createServer((req, res) => {

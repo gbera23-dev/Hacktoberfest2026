@@ -1,4 +1,4 @@
-import type { BusLocation, BusStop } from "../../../api/src/index";
+import type { BusLocation, BusStop } from "../../../../shared/api/src/index";
 
 const EARTH_RADIUS_KM = 6371;
 

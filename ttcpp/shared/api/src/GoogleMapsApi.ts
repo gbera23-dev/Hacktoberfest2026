@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance } from "axios";
 import type { ComputeRoutesRequest, ComputeRoutesResponse, GeocodeResponse, GoogleRoute, GoogleRouteSummary, GoogleTransitRoute, GoogleTransitStep, PlacesSearchRequest, PlacesSearchResponse } from "./googleMapsTypes.js";
-import { MOCK_GEOCODING, MOCK_PLACES, MOCK_ROUTES } from "../../mock-data/googleMaps.js";
+import { MOCK_GEOCODING, MOCK_PLACES, MOCK_ROUTES } from "../../../mock-data/googleMaps.js";
 
 export const GOOGLE_ROUTES_BASE_URL = "https://routes.googleapis.com";
 export const GOOGLE_GEOCODING_BASE_URL = "https://geocode.googleapis.com";

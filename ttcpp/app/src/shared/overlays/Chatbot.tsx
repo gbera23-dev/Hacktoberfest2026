@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { Bus, BusStop, Locale } from "../../../api/src/index";
-import type { Screen } from "./NavBar";
+import type { Bus, BusStop, Locale } from "../../../../shared/api/src/index";
+import type { Screen } from "../components/NavBar";
+import { CHAT_REQUEST_TIMEOUT_MS } from "../constants/application";
 
 type Props = {
   locale: Locale;
@@ -97,7 +98,7 @@ export function Chatbot({ locale, screen, selectedStop, selectedRoute }: Props) 
     setMessages((current) => [...current, { role: "user", text: message }]);
     setSending(true);
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 25_000);
+    const timeoutId = window.setTimeout(() => controller.abort(), CHAT_REQUEST_TIMEOUT_MS);
     try {
       const response = await fetch("/api/chat", {
         method: "POST",

@@ -1,7 +1,7 @@
 import L from "leaflet";
 import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { useEffect, useState } from "react";
-import type { BusLocation, BusStop, LatLng } from "../../../api/src/index";
+import type { BusLocation, BusStop, LatLng } from "../../../../shared/api/src/index";
 import { GoogleTrafficMap } from "./GoogleTrafficMap";
 
 const TBILISI: [number, number] = [41.7151, 44.8271];

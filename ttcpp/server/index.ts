@@ -1,8 +1,8 @@
 import cors from "cors";
 import express, { type Request } from "express";
-import { GoogleMapsApi, TtcApi, summarizeGoogleRoutes, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../api/src/index.js";
-import { runTtcChat, type ChatContext, type ChatTurn } from "../api/src/chatGraph.js";
-import { runWhatIfSimulator, type WhatIfInput } from "../api/src/whatIfGraph.js";
+import { GoogleMapsApi, TtcApi, summarizeGoogleRoutes, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../shared/api/src/index.js";
+import { runTtcChat, type ChatContext, type ChatTurn } from "../shared/api/src/chatGraph.js";
+import { runWhatIfSimulator, type WhatIfInput } from "../shared/api/src/whatIfGraph.js";
 
 const apiKey = process.env.TTC_API_KEY;
 if (!apiKey) throw new Error("TTC_API_KEY is required");

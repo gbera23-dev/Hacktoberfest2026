@@ -1,4 +1,4 @@
-import { TtcApi, type GooglePlace, type GoogleRouteSummary, type GoogleTransitRoute, type LatLng, type Locale } from "../../api/src/index";
+import { TtcApi, type GooglePlace, type GoogleRouteSummary, type GoogleTransitRoute, type LatLng, type Locale } from "../../../../shared/api/src/index";
 
 export type WhatIfRequest = { from: LatLng; to: LatLng; locale: Locale; offsetsMinutes: number[] };
 

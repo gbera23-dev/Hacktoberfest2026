@@ -25,10 +25,13 @@ services provide it.
 
 ```text
 ttcpp/
-├── api/                 Reusable TTC and Google API client code
+├── shared/
+│   └── api/src/          Reusable TTC and Google API client code
+├── app/                  React and Vite frontend
 │   └── src/
-├── app/                 React and Vite frontend
-│   └── src/
+│       ├── app/          Application composition and global state
+│       ├── features/     Plan, stops, routes, and live page packages
+│       └── shared/       Shared components, hooks, overlays, and utilities
 ├── netlify/functions/   Serverless API entry point
 ├── server/              Local Express API proxy
 ├── test/                API and utility tests
@@ -112,7 +115,7 @@ npm run test:google-live
 
 ## API client
 
-The reusable client is exported from [`api/src/index.ts`](./api/src/index.ts).
+The reusable client is exported from [`shared/api/src/index.ts`](./shared/api/src/index.ts).
 It provides methods for stops, arrivals, routes, route stops, route geometry,
 vehicle positions, and trip planning. The Express server adds the TTC API key
 on the server side so it is not placed in the browser bundle.
@@ -130,7 +133,7 @@ The main local proxy endpoints are:
 | `/api/ttc/plan` | Request a trip plan |
 
 The exact upstream request construction is implemented in
-[`api/src/TtcApi.ts`](./api/src/TtcApi.ts) and the related API classes.
+[`shared/api/src/TtcApi.ts`](./shared/api/src/TtcApi.ts) and the related API classes.
 
 ## Deployment
 

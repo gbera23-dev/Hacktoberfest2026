@@ -1,4 +1,4 @@
-import type { BusArrival, BusStop } from "../../../api/src/index";
+import type { BusArrival, BusStop } from "../../../../shared/api/src/index";
 
 export type CrowdingLevel = "LOW" | "MODERATE" | "BUSY" | "VERY_BUSY";
 export type CrowdingConfidence = "LOW" | "MEDIUM";

@@ -1,6 +1,6 @@
-import { GoogleMapsApi, TtcApi, summarizeGoogleRoutes, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../../api/src/index.js";
-import { runTtcChat, type ChatContext, type ChatTurn } from "../../api/src/chatGraph.js";
-import { runWhatIfSimulator, type WhatIfInput } from "../../api/src/whatIfGraph.js";
+import { GoogleMapsApi, TtcApi, summarizeGoogleRoutes, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../../shared/api/src/index.js";
+import { runTtcChat, type ChatContext, type ChatTurn } from "../../shared/api/src/chatGraph.js";
+import { runWhatIfSimulator, type WhatIfInput } from "../../shared/api/src/whatIfGraph.js";
 
 type Event = {
   httpMethod: string;

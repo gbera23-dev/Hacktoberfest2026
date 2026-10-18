@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { TtcApi } from "../api/src/index.js";
+import { TtcApi } from "../shared/api/src/index.js";
 
 const apiKey = process.env.TTC_API_KEY;
 assert.ok(apiKey, "TTC_API_KEY is required in ../.env for the live API test");

@@ -1,4 +1,4 @@
-import type { ComputeRoutesResponse, GeocodeResponse, GooglePlace } from "../api/src/googleMapsTypes.js";
+import type { ComputeRoutesResponse, GeocodeResponse, GooglePlace } from "../shared/api/src/googleMapsTypes.js";
 
 export const MOCK_GEOCODING: Record<string, GeocodeResponse> = {
   "Didube Metro Station": { results: [{ place: "places/mock-didube-metro", placeId: "mock-didube-metro", formattedAddress: "Didube Metro Station, Tbilisi, Georgia", location: { latitude: 41.7497, longitude: 44.7798 }, addressComponents: [], types: ["transit_station"] }] },

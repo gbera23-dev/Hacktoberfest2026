@@ -1,7 +1,7 @@
 // Checks the URLs, params and header we send, against a local mock server. Says nothing about the real API.
 import assert from "node:assert/strict";
 import http from "node:http";
-import { TtcApi } from "../api/src/index.js";
+import { TtcApi } from "../shared/api/src/index.js";
 
 const seen: { path: string; query: URLSearchParams; key?: string }[] = [];
 const server = http.createServer((req, res) => {
