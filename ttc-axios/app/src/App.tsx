@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import type { Bus, BusStop, GooglePlace, LatLng, Locale } from "../../api/src/index";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Bus, BusArrival, BusLocation, BusStop, GooglePlace, LatLng, Locale } from "../../api/src/index";
 import { Chatbot } from "./components/Chatbot";
 import { NavBar, pathForScreen, screenFromPath, type Screen } from "./components/NavBar";
 import { TtcMap } from "./components/TtcMap";
@@ -21,13 +21,83 @@ import {
 } from "./hooks/useTtcQueries";
 
 const text = {
-  en: { plan: "Plan a trip", stops: "Stops & arrivals", routes: "Routes", live: "Live buses", search: "Search stops", choose: "Choose a stop", chooseRoute: "Choose a route", loading: "Loading…", noData: "No data found", select: "Select", from: "From", to: "To", clickMap: "Click the map to set a location", setFrom: "Set origin", setTo: "Set destination", clear: "Clear", minutes: "min", realtime: "Live", scheduled: "Scheduled", departures: "Upcoming arrivals", map: "Network map", stopsLoaded: "stops loaded", noToken: "The proxy server must be running.", avgVelocity: "avg. km/h", googleTransit: "Google transit details", noTransit: "No transit vehicle details returned", searchPlaces: "Search landmarks, universities, malls…", usePlace: "Use this place", crowdingEstimate: "Estimated crowding", crowdingNote: "Heuristic from time, stop context, headway, and live status — not passenger counting.", crowdingLow: "Low", crowdingModerate: "Moderate", crowdingBusy: "Busy", crowdingVeryBusy: "Very busy", confidenceLow: "low confidence", confidenceMedium: "medium confidence", whatIf: "What-if departure simulator", compareDepartures: "Compare now, +10, +20, +30 min", simulationNote: "Compares future departure scenarios with live TTC and time-specific route data.", language: "Language", navigation: "Primary navigation", liveRefresh: "Live positions refresh every 15 seconds.", stopsUnit: "stops", vehiclesUnit: "live vehicles", routeGeometry: "route geometry loaded", origin: "Origin", destination: "Destination", walk: "Walk", transitVehicle: "Transit vehicle", theme: "Theme", light: "Light", dark: "Dark", walkingTime: "Walking time", busTime: "Bus time", distance: "Distance", noWalkingRoute: "No walking route found", noBusRoute: "No bus route found", busRoute: "Bus route" },
-  ka: { plan: "მარშრუტის დაგეგმვა", stops: "გაჩერებები და მოსვლები", routes: "მარშრუტები", live: "ავტობუსები რეალურ დროში", search: "გაჩერების ძიება", choose: "აირჩიეთ გაჩერება", chooseRoute: "აირჩიეთ მარშრუტი", loading: "იტვირთება…", noData: "მონაცემები ვერ მოიძებნა", select: "არჩევა", from: "საწყისი", to: "დანიშნულება", clickMap: "ადგილმდებარეობის ასარჩევად დააჭირეთ რუკას", setFrom: "საწყისი", setTo: "დანიშნულება", clear: "გასუფთავება", minutes: "წთ", realtime: "რეალური", scheduled: "გეგმიური", departures: "მოსალოდნელი ავტობუსები", map: "ქსელის რუკა", stopsLoaded: "გაჩერება ჩაიტვირთა", noToken: "პროქსი სერვერი გაშვებული უნდა იყოს.", avgVelocity: "საშ. კმ/სთ", googleTransit: "Google-ის ტრანზიტის დეტალები", noTransit: "ტრანზიტის სატრანსპორტო დეტალები ვერ მოიძებნა", searchPlaces: "ღირსშესანიშნაობების, უნივერსიტეტების, მოლების ძიება…", usePlace: "ამ ადგილის გამოყენება", crowdingEstimate: "მგზავრების სავარაუდო დატვირთულობა", crowdingNote: "შეფასება ეფუძნება დროს, გაჩერების კონტექსტს, ინტერვალსა და რეალურ სტატუსს — ეს არ არის მგზავრების დათვლა.", crowdingLow: "დაბალი", crowdingModerate: "საშუალო", crowdingBusy: "დატვირთული", crowdingVeryBusy: "ძალიან დატვირთული", confidenceLow: "დაბალი სანდოობა", confidenceMedium: "საშუალო სანდოობა", whatIf: "გამგზავრების სცენარების სიმულატორი", compareDepartures: "შედარება: ახლა, +10, +20, +30 წთ", simulationNote: "ადარებს მომავალ გამგზავრებებს TTC-ის რეალურ და დროის მიხედვით მიღებულ მონაცემებთან.", language: "ენა", navigation: "მთავარი ნავიგაცია", liveRefresh: "ცოცხალი პოზიციები ახლდება ყოველ 15 წამში.", stopsUnit: "გაჩერება", vehiclesUnit: "ცოცხალი ავტობუსი", routeGeometry: "მარშრუტის გეომეტრია ჩაიტვირთა", origin: "საწყისი", destination: "დანიშნულება", walk: "ფეხით", transitVehicle: "სატრანსპორტო საშუალება", theme: "თემა", light: "ღია", dark: "მუქი", walkingTime: "ფეხით მგზავრობის დრო", busTime: "ავტობუსით მგზავრობის დრო", distance: "მანძილი", noWalkingRoute: "ფეხით მარშრუტი ვერ მოიძებნა", noBusRoute: "ავტობუსის მარშრუტი ვერ მოიძებნა", busRoute: "ავტობუსის მარშრუტი" },
+  en: { plan: "Plan a trip", stops: "Stops & arrivals", routes: "Routes", live: "Live buses", search: "Search stops", choose: "Choose a stop", chooseRoute: "Choose a route", loading: "Loading…", noData: "No data found", select: "Select", from: "From", to: "To", clickMap: "Click the map to set a location", setFrom: "Set origin", setTo: "Set destination", clear: "Clear", minutes: "min", realtime: "Live", scheduled: "Scheduled", departures: "Upcoming arrivals", map: "Network map", stopsLoaded: "stops loaded", noToken: "The proxy server must be running.", avgVelocity: "avg. km/h", googleTransit: "Google transit details", noTransit: "No transit vehicle details returned", searchPlaces: "Search landmarks, universities, malls…", usePlace: "Use this place", crowdingEstimate: "Estimated crowding", crowdingNote: "Heuristic from time, stop context, headway, and live status — not passenger counting.", crowdingLow: "Low", crowdingModerate: "Moderate", crowdingBusy: "Busy", crowdingVeryBusy: "Very busy", confidenceLow: "low confidence", confidenceMedium: "medium confidence", whatIf: "What-if departure simulator", compareDepartures: "Compare now, +10, +20, +30 min", simulationNote: "Compares future departure scenarios with live TTC and time-specific route data.", language: "Language", navigation: "Primary navigation", liveRefresh: "Live positions refresh every 15 seconds.", stopsUnit: "stops", vehiclesUnit: "live vehicles", routeGeometry: "route geometry loaded", origin: "Origin", destination: "Destination", walk: "Walk", transitVehicle: "Transit vehicle", theme: "Theme", light: "Light", dark: "Dark", walkingTime: "Walking time", busTime: "Bus time", distance: "Distance", noWalkingRoute: "No walking route found", noBusRoute: "No bus route found", busRoute: "Bus route", alerts: "Stop alerts", enableAlerts: "Enable alerts", alertsEnabled: "Alerts enabled", alertDescription: "Get notified when a bus is approaching or arrives at this stop.", alertThreshold: "Notify me within", approachingAlert: "Bus {route} is approaching {stop} ({minutes} min)", arrivedAlert: "Bus {route} has arrived at {stop}", alertPermissionDenied: "Browser notifications are blocked. Allow them in site settings.", alertPermissionUnavailable: "Browser notifications are not available in this browser." },
+  ka: { plan: "მარშრუტის დაგეგმვა", stops: "გაჩერებები და მოსვლები", routes: "მარშრუტები", live: "ავტობუსები რეალურ დროში", search: "გაჩერების ძიება", choose: "აირჩიეთ გაჩერება", chooseRoute: "აირჩიეთ მარშრუტი", loading: "იტვირთება…", noData: "მონაცემები ვერ მოიძებნა", select: "არჩევა", from: "საწყისი", to: "დანიშნულება", clickMap: "ადგილმდებარეობის ასარჩევად დააჭირეთ რუკას", setFrom: "საწყისი", setTo: "დანიშნულება", clear: "გასუფთავება", minutes: "წთ", realtime: "რეალური", scheduled: "გეგმიური", departures: "მოსალოდნელი ავტობუსები", map: "ქსელის რუკა", stopsLoaded: "გაჩერება ჩაიტვირთა", noToken: "პროქსი სერვერი გაშვებული უნდა იყოს.", avgVelocity: "საშ. კმ/სთ", googleTransit: "Google-ის ტრანზიტის დეტალები", noTransit: "ტრანზიტის სატრანსპორტო დეტალები ვერ მოიძებნა", searchPlaces: "ღირსშესანიშნაობების, უნივერსიტეტების, მოლების ძიება…", usePlace: "ამ ადგილის გამოყენება", crowdingEstimate: "მგზავრების სავარაუდო დატვირთულობა", crowdingNote: "შეფასება ეფუძნება დროს, გაჩერების კონტექსტს, ინტერვალსა და რეალურ სტატუსს — ეს არ არის მგზავრების დათვლა.", crowdingLow: "დაბალი", crowdingModerate: "საშუალო", crowdingBusy: "დატვირთული", crowdingVeryBusy: "ძალიან დატვირთული", confidenceLow: "დაბალი სანდოობა", confidenceMedium: "საშუალო სანდოობა", whatIf: "გამგზავრების სცენარების სიმულატორი", compareDepartures: "შედარება: ახლა, +10, +20, +30 წთ", simulationNote: "ადარებს მომავალ გამგზავრებებს TTC-ის რეალურ და დროის მიხედვით მიღებულ მონაცემებთან.", language: "ენა", navigation: "მთავარი ნავიგაცია", liveRefresh: "ცოცხალი პოზიციები ახლდება ყოველ 15 წამში.", stopsUnit: "გაჩერება", vehiclesUnit: "ცოცხალი ავტობუსი", routeGeometry: "მარშრუტის გეომეტრია ჩაიტვირთა", origin: "საწყისი", destination: "დანიშნულება", walk: "ფეხით", transitVehicle: "სატრანსპორტო საშუალება", theme: "თემა", light: "ღია", dark: "მუქი", walkingTime: "ფეხით მგზავრობის დრო", busTime: "ავტობუსით მგზავრობის დრო", distance: "მანძილი", noWalkingRoute: "ფეხით მარშრუტი ვერ მოიძებნა", noBusRoute: "ავტობუსის მარშრუტი", alerts: "გაჩერების შეტყობინებები", enableAlerts: "შეტყობინებების ჩართვა", alertsEnabled: "შეტყობინებები ჩართულია", alertDescription: "მიიღეთ შეტყობინება, როცა ავტობუსი უახლოვდება ან მოვა ამ გაჩერებაზე.", alertThreshold: "შემატყობინე, როცა დარჩება", approachingAlert: "ავტობუსი {route} უახლოვდება გაჩერებას {stop} ({minutes} წთ)", arrivedAlert: "ავტობუსი {route} მოვიდა გაჩერებაზე {stop}", alertPermissionDenied: "ბრაუზერის შეტყობინებები დაბლოკილია. ჩართეთ ისინი საიტის პარამეტრებში.", alertPermissionUnavailable: "ბრაუზერის შეტყობინებები ამ ბრაუზერში მიუწვდომელია." },
 } as const;
-type Labels = { [Key in keyof typeof text.en]: string };
+type Labels = { [Key in Exclude<keyof typeof text.en, "busRoute">]: string } & { busRoute?: string };
 
 function ErrorMessage({ error }: { error: unknown }) {
   return <p className="error" role="alert">{error instanceof Error ? error.message : "Request failed"}</p>;
+}
+
+function StopAlerts({ labels, stop, arrivals, routes, positions }: { labels: Labels; stop: BusStop; arrivals: BusArrival[] | undefined; routes: { id: string; shortName: string }[] | undefined; positions: { data?: BusLocation[] }[] }) {
+  const storageKey = `ttc-alerts:${stop.id}`;
+  const [enabled, setEnabled] = useState(() => window.localStorage.getItem(storageKey) === "true");
+  const [threshold, setThreshold] = useState(5);
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(() => typeof window !== "undefined" && "Notification" in window ? Notification.permission : "unsupported");
+  const [recentAlerts, setRecentAlerts] = useState<string[]>([]);
+  const fired = useRef(new Set<string>());
+  const previousArrivals = useRef(new Map<string, number>());
+  const trafficSurgeAlert = labels.alerts === "გაჩერების შეტყობინებები"
+    ? "წინ მოძრაობა გაუარესდა: ავტობუსი {route} ახლა {minutes} წთ-ში მოვა (ადრე {previous} წთ)"
+    : "Traffic surge ahead: bus {route} arrival changed from {previous} to {minutes} min";
+
+  useEffect(() => {
+    fired.current.clear();
+    setEnabled(window.localStorage.getItem(storageKey) === "true");
+    setRecentAlerts([]);
+  }, [storageKey]);
+
+  const notify = (key: string, title: string, body: string) => {
+    if (!enabled || fired.current.has(key)) return;
+    fired.current.add(key);
+    setRecentAlerts((current) => [body, ...current].slice(0, 3));
+    if (permission === "granted") new Notification(title, { body, tag: key });
+  };
+
+  useEffect(() => {
+    if (!enabled) return;
+    arrivals?.forEach((arrival) => {
+      const minutes = arrival.realtimeArrivalMinutes;
+      const previous = previousArrivals.current.get(arrival.shortName);
+      if (arrival.realtime && previous !== undefined && minutes - previous >= 5) {
+        const body = trafficSurgeAlert.replace("{route}", arrival.shortName).replace("{previous}", String(previous)).replace("{minutes}", String(minutes));
+        notify(`traffic:${arrival.shortName}:${previous}:${minutes}`, labels.alerts, body);
+      }
+      if (minutes > 0 && minutes <= threshold) {
+        const body = labels.approachingAlert.replace("{route}", arrival.shortName).replace("{stop}", stop.name).replace("{minutes}", String(minutes));
+        notify(`approaching:${arrival.shortName}`, labels.alerts, body);
+      } else if (minutes <= 0) {
+        const body = labels.arrivedAlert.replace("{route}", arrival.shortName).replace("{stop}", stop.name);
+        notify(`arrived:${arrival.shortName}`, labels.alerts, body);
+      }
+      previousArrivals.current.set(arrival.shortName, minutes);
+    });
+    routes?.forEach((route, index) => {
+      if (positions[index]?.data?.some((vehicle) => vehicle.nextStopId === stop.id)) {
+        const body = labels.arrivedAlert.replace("{route}", route.shortName).replace("{stop}", stop.name);
+        notify(`arrived:${route.shortName}`, labels.alerts, body);
+      }
+    });
+  }, [arrivals, enabled, labels, permission, positions, routes, stop, threshold, trafficSurgeAlert]);
+
+  const enable = async () => {
+    if (!("Notification" in window)) { setPermission("unsupported"); return; }
+    const nextPermission = await Notification.requestPermission();
+    setPermission(nextPermission);
+    if (nextPermission === "granted") {
+      window.localStorage.setItem(storageKey, "true");
+      setEnabled(true);
+    }
+  };
+
+  return <section className="stop-alerts" aria-live="polite">
+    <div className="stop-alerts-heading"><div><h3>{labels.alerts}</h3><p className="muted">{labels.alertDescription}</p></div>{enabled && <span className="mode-pill">{labels.alertsEnabled}</span>}</div>
+    {!enabled ? <button className="text-button" type="button" onClick={enable}>{labels.enableAlerts}</button> : <div className="alert-settings"><label>{labels.alertThreshold}<select value={threshold} onChange={(event) => setThreshold(Number(event.target.value))}><option value="3">3 {labels.minutes}</option><option value="5">5 {labels.minutes}</option><option value="10">10 {labels.minutes}</option></select></label><button className="text-button" type="button" onClick={() => { setEnabled(false); window.localStorage.removeItem(storageKey); }}>{labels.clear}</button></div>}
+    {permission === "denied" && <p className="error">{labels.alertPermissionDenied}</p>}
+    {permission === "unsupported" && <p className="muted">{labels.alertPermissionUnavailable}</p>}
+    {recentAlerts.map((alert) => <p className="alert-event" key={alert}>{alert}</p>)}
+  </section>;
 }
 
 function StopPanel({ locale, labels, stops, selectedStop, onSelect }: { locale: Locale; labels: Labels; stops: BusStop[]; selectedStop?: BusStop; onSelect: (stop: BusStop) => void }) {
@@ -57,6 +127,7 @@ function StopPanel({ locale, labels, stops, selectedStop, onSelect }: { locale: 
         {selectedStop.vehicleMode === "BUS" && <p className="muted crowding-note">{labels.crowdingNote}</p>}
         {arrivals.isLoading && <p className="muted">{labels.loading}</p>}
         {arrivals.error && <ErrorMessage error={arrivals.error} />}
+        {selectedStop.vehicleMode === "BUS" && <StopAlerts labels={labels} stop={selectedStop} arrivals={arrivals.data} routes={arrivalRoutes} positions={routePositions} />}
         <div className="arrivals">{arrivals.data?.map((arrival, index) => { const velocity = velocityFor(arrival.shortName, arrival.realtimeArrivalMinutes); const crowding = selectedStop.vehicleMode === "BUS" ? estimateCrowding(arrival, arrivals.data ?? [], selectedStop) : undefined; const crowdingLabel = crowding?.level === "LOW" ? labels.crowdingLow : crowding?.level === "MODERATE" ? labels.crowdingModerate : crowding?.level === "BUSY" ? labels.crowdingBusy : labels.crowdingVeryBusy; return <div className="arrival" key={`${arrival.shortName}-${index}`}><span className="arrival-route" aria-label={`Bus ${arrival.shortName}, ${arrival.realtimeArrivalMinutes} ${labels.minutes}`}><span className="route-badge" style={{ background: arrival.color || "#0f766e" }}>{arrival.shortName}</span><strong>Bus {arrival.shortName} · {arrival.realtimeArrivalMinutes} {labels.minutes}</strong></span><span>{arrival.headsign}</span><small>{arrival.realtime ? <><span className="realtime-signal" aria-label={labels.realtime}><i /><i /><i /></span>{labels.realtime}</> : labels.scheduled}{velocity !== undefined && <span className="velocity"> · {velocity} {labels.avgVelocity}</span>}{crowding && <><span className={`crowding-badge crowding-${crowding.level.toLowerCase()}`} title={`${labels.crowdingEstimate}: ${crowdingLabel}`}>{crowdingLabel}</span><span className="crowding-confidence"> · {crowding.confidence === "MEDIUM" ? labels.confidenceMedium : labels.confidenceLow}</span></>}</small></div>; })}</div>
         <h3>{labels.routes}</h3>
         {stopRoutes.data?.map((route) => <span className="route-chip" key={route.id}>{route.shortName} · {route.longName}</span>)}

@@ -34,5 +34,17 @@ assert.equal(fallbackGeocode.results[0]?.placeId, "mock-didube-metro");
 const fallbackPlaces = await fallback.places.search({ textQuery: "Tbilisi Mall" });
 assert.equal(fallbackPlaces.places?.[0]?.id, "mock-tbilisi-mall");
 
+const rateLimitedServer = http.createServer((_req, res) => {
+  res.statusCode = 429;
+  res.setHeader("content-type", "application/json");
+  res.end(JSON.stringify({ error: { status: "RESOURCE_EXHAUSTED" } }));
+});
+await new Promise<void>((resolve) => rateLimitedServer.listen(0, "127.0.0.1", resolve));
+const rateLimitedPort = (rateLimitedServer.address() as { port: number }).port;
+const rateLimited = new GoogleMapsApi({ apiKey: "quota-exhausted", routesBaseUrl: `http://127.0.0.1:${rateLimitedPort}` });
+const rateLimitedRoute = await rateLimited.routes.compute({ origin: { address: "Didube" }, destination: { address: "Free University" } });
+assert.equal(rateLimitedRoute.fallbackInfo?.reason, "MOCK_DATA");
+rateLimitedServer.close();
+
 server.close();
 console.log(`google maps wrapper tests passed (${seen.length} requests)`);

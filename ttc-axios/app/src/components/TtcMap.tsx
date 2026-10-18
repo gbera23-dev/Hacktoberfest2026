@@ -36,6 +36,21 @@ function MapViewport({ onChange }: { onChange: (center: LatLng, zoom: number) =>
   return null;
 }
 
+function MapSizeSync() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const refresh = () => map.invalidateSize({ pan: false, debounceMoveend: true });
+    refresh();
+    const observer = new ResizeObserver(refresh);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+
+  return null;
+}
+
 function RecenterMap({ point }: { point?: LatLng }) {
   const map = useMap();
   useEffect(() => {
@@ -45,6 +60,7 @@ function RecenterMap({ point }: { point?: LatLng }) {
 }
 
 type Props = {
+  className?: string;
   locale?: "en" | "ka";
   stops?: BusStop[];
   routeStops?: BusStop[];
@@ -57,7 +73,7 @@ type Props = {
   onTrafficChange?: (enabled: boolean) => void;
 };
 
-export function TtcMap({ locale = typeof document !== "undefined" && document.documentElement.lang === "ka" ? "ka" : "en", stops = [], routeStops = [], positions = [], from, to, onPick, onStopSelect, trafficEnabled = false, onTrafficChange }: Props) {
+export function TtcMap({ className, locale = typeof document !== "undefined" && document.documentElement.lang === "ka" ? "ka" : "en", stops = [], routeStops = [], positions = [], from, to, onPick, onStopSelect, trafficEnabled = false, onTrafficChange }: Props) {
   const labels = mapText[locale];
   const modeLabels = { BUS: labels.busStop, SUBWAY: labels.metroStop, GONDOLA: labels.gondolaStop } as const;
   const routeLine = routeStops.map((stop) => [stop.lat, stop.lon] as [number, number]);
@@ -77,7 +93,7 @@ export function TtcMap({ locale = typeof document !== "undefined" && document.do
     );
   };
   const updateViewport = (center: LatLng, zoom: number) => setViewport({ center, zoom });
-  return <div className="map-shell">
+  return <div className={`map-shell${className ? ` ${className}` : ""}`}>
     <label className={`traffic-toggle ${trafficEnabled ? "google" : "leaflet"}`}><input type="checkbox" checked={trafficEnabled} onChange={(event) => onTrafficChange?.(event.target.checked)} /> <span>{labels.traffic}</span></label>
     <button className="location-control" type="button" onClick={locateUser} disabled={locating} aria-label={labels.locate}>{locating ? "…" : "◎"} <span>{locating ? labels.locating : labels.locate}</span></button>
     {locationError && <p className="location-error" role="alert">{locationError}</p>}
@@ -87,6 +103,7 @@ export function TtcMap({ locale = typeof document !== "undefined" && document.do
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapViewport onChange={updateViewport} />
+      <MapSizeSync />
       <RecenterMap point={userLocation} />
       <MapClick onPick={onPick} />
       <div className="map-legend" aria-label={labels.mapLegend}><span><i className="legend-icon legend-bus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v10H3V7a2 2 0 0 1 2-2Z"/><circle cx="7" cy="14" r="1.3"/><circle cx="17" cy="14" r="1.3"/></svg></i>{labels.bus}</span><span><i className="legend-icon legend-subway">M</i>{labels.metro}</span><span><i className="legend-icon legend-gondola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M12 6v4"/><path d="M7 10h10l-1 7H8l-1-7Z"/></svg></i>{labels.gondola}</span></div>

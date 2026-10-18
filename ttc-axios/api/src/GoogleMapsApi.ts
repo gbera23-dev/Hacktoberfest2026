@@ -6,6 +6,10 @@ export const GOOGLE_ROUTES_BASE_URL = "https://routes.googleapis.com";
 export const GOOGLE_GEOCODING_BASE_URL = "https://geocode.googleapis.com";
 export const GOOGLE_PLACES_BASE_URL = "https://places.googleapis.com";
 
+function isRateLimited(error: unknown) {
+  return axios.isAxiosError(error) && error.response?.status === 429;
+}
+
 export function extractGoogleTransitSteps(route: GoogleRoute): GoogleTransitStep[] {
   return route.legs?.flatMap((leg) => leg.steps ?? []).flatMap((step) => {
     const details = step.transitDetails;
@@ -89,7 +93,7 @@ export class GoogleMapsApi {
       });
       return data;
     } catch (error) {
-      if (this.useMockFallback) {
+      if (this.useMockFallback || isRateLimited(error)) {
         const needle = request.textQuery.toLocaleLowerCase();
         const match = Object.entries(MOCK_PLACES).find(([name]) => needle.includes(name.toLocaleLowerCase()) || name.toLocaleLowerCase().includes(needle));
         if (match) return { places: [match[1]] };
@@ -112,7 +116,7 @@ export class GoogleMapsApi {
       });
       return data;
     } catch (error) {
-      if (this.useMockFallback) return MOCK_ROUTES;
+      if (this.useMockFallback || isRateLimited(error)) return MOCK_ROUTES;
       throw error;
     }
   }
@@ -125,7 +129,7 @@ export class GoogleMapsApi {
       });
       return data;
     } catch (error) {
-      if (this.useMockFallback) {
+      if (this.useMockFallback || isRateLimited(error)) {
         const match = Object.entries(MOCK_GEOCODING).find(([name]) => address.toLocaleLowerCase().includes(name.toLocaleLowerCase()));
         if (match) return match[1];
       }
