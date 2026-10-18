@@ -1,0 +1,9 @@
+.route-details > .map-shell { min-height: 520px; width: calc(100% + 44px); margin: -22px -22px 18px; }
+.route-details > .map-shell .map { border-radius: 0 0 18px 18px; }
+@media (max-width: 820px) {
+  .route-details > .map-shell { min-height: min(55svh, 400px); height: min(55svh, 400px); width: calc(100% + 32px); margin: -16px -16px 16px; }
+}
+@media (max-width: 820px) {
+  .route-details > .map-shell { min-height: 430px; width: calc(100% + 34px); margin: -17px -17px 18px; }
+  .route-details > .map-shell .map { border-radius: 0 0 15px 15px; }
+}

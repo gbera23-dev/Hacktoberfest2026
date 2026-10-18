@@ -1,3 +1,4 @@
+import "../live.css";
 import type { Bus, BusStop, Locale } from "../../../../../shared/api/src/index";
 import { TtcMap } from "../../../shared/components/TtcMap";
 import { useLiveRoute } from "../hooks/useLiveRoute";

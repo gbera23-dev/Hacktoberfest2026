@@ -7,7 +7,7 @@ type Props = { locale: Locale; labels: Labels; selectedRoute?: Bus; trafficEnabl
 
 export function RouteDetails({ locale, labels, selectedRoute, trafficEnabled, onTrafficChange }: Props) {
   const { routeStops, positions, polyline } = useRouteDetails(selectedRoute?.id, locale);
-  return <div className="panel-detail">
+  return <div className="route-details panel-detail">
     <TtcMap locale={locale} stops={routeStops.data} routeStops={routeStops.data} positions={positions.data} trafficEnabled={trafficEnabled} onTrafficChange={onTrafficChange} />
     {selectedRoute && <>
       <div className="detail-heading"><div><span className="eyebrow">{selectedRoute.shortName}</span><h2>{selectedRoute.longName}</h2></div></div>
