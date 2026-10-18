@@ -107,8 +107,10 @@ h3 { font-size: 13px; color: #4c6059; text-transform: uppercase; letter-spacing:
 .detail-heading h2 { margin: 5px 0 0; }
 .mode-pill, .route-chip { display: inline-block; border-radius: 999px; background: #e7f5ef; color: #087f5b; padding: 5px 9px; font-size: 11px; font-weight: 700; }
 .arrivals { display: grid; gap: 6px; }
-.arrival { display: grid; grid-template-columns: minmax(205px, auto) 1fr auto; gap: 12px; align-items: center; border-bottom: 1px solid #eef2f0; padding: 10px 0; font-size: 13px; }
-.arrival-route { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.arrival { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .85fr) minmax(0, 1fr); gap: 12px; align-items: center; border-bottom: 1px solid #eef2f0; padding: 10px 0; font-size: 13px; }
+.arrival > * { min-width: 0; overflow-wrap: anywhere; }
+.arrival-route { display: inline-flex; min-width: 0; align-items: center; gap: 8px; white-space: normal; }
+.arrival-route strong { overflow-wrap: anywhere; }
 .arrival small { color: #8a9892; font-size: 10px; }
 .velocity { color: #087f5b; font-weight: 700; }
 .crowding-note { margin: -4px 0 8px; font-size: 11px; }
@@ -406,6 +408,9 @@ nav button.active { border-bottom: 0; background: linear-gradient(135deg, #e4f5e
 .stops-page > .map-shell { min-width: 0; min-height: 600px; }
 .stops-page > .split-panel { min-width: 0; min-height: 600px; grid-template-columns: minmax(190px, .62fr) minmax(0, 1.38fr); }
 .stops-page > .split-panel > .panel-list, .stops-page > .split-panel > .panel-detail { height: 600px; min-height: 0; }
+.stops-page > .split-panel > .panel-detail { overflow-x: hidden; overflow-y: auto; scrollbar-color: #afd8c8 transparent; scrollbar-width: thin; }
+.stops-page > .split-panel > .panel-detail::-webkit-scrollbar { width: 7px; }
+.stops-page > .split-panel > .panel-detail::-webkit-scrollbar-thumb { background: #b8dacc; border: 2px solid transparent; border-radius: 99px; background-clip: padding-box; }
 
 /* Keep anchored controls anchored after the generic button interaction rules. */
 button.location-control:not(:disabled), button.location-control:disabled { position: absolute; }
