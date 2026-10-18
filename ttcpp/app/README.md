@@ -1,7 +1,7 @@
 # React application
 
 This directory contains the Vite-powered React application. Start the
-development server from `ttc-axios/` with `npm run dev`, or create a
+development server from `ttcpp/` with `npm run dev`, or create a
 production bundle with `npm run build`.
 
 Its source entry point is [`src/main.tsx`](./src/main.tsx), with the initial
