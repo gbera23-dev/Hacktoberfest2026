@@ -31,9 +31,9 @@
 .arrival small { color: var(--muted); }
 .arrival { border-bottom-color: #e7f0eb; }
 .arrival:hover { background: linear-gradient(90deg, #f4fbf7, transparent); }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .arrival { grid-template-columns: 1fr; gap: 5px; padding: 12px 0; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .arrival small { min-height: 18px; } }
 html[data-theme="dark"] .search input { background: #10251f; color: var(--ink); }
 html[data-theme="dark"] .arrival small { color: var(--muted); }
@@ -50,26 +50,36 @@ html[data-theme="dark"] .alert-settings select { color: var(--ink); background: 
 .stops-page > .split-panel > .panel-detail { overflow-x: hidden; overflow-y: auto; scrollbar-color: #afd8c8 transparent; scrollbar-width: thin; }
 .stops-page > .split-panel > .panel-detail::-webkit-scrollbar { width: 7px; }
 .stops-page > .split-panel > .panel-detail::-webkit-scrollbar-thumb { background: #b8dacc; border: 2px solid transparent; border-radius: 99px; background-clip: padding-box; }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .stops-page > .map-shell { width: 100%; min-width: 0; min-height: min(58svh, 430px); height: min(58svh, 430px); margin-bottom: 0; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .stops-page > .split-panel > .panel-list, .stops-page > .split-panel > .panel-detail { height: auto; min-height: 0; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .stops-page { display: block; min-height: 0; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .stops-page > .map-shell { margin-bottom: 14px; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .arrival { grid-template-columns: minmax(0, 1fr); gap: 5px; align-items: start; padding: 12px 0; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .arrival-route { max-width: 100%; white-space: normal; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .arrival-route strong { overflow-wrap: anywhere; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .stops-page { display: block; min-height: 0; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .stops-page > .map-shell { min-height: 430px; margin-bottom: 18px; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .stops-page > .split-panel { min-height: 0; } }
-@media (max-width: 820px) {
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
   .stops-page > .split-panel > .panel-list, .stops-page > .split-panel > .panel-detail { height: auto; min-height: 0; } }
 html[data-theme="dark"] .search input { background: #10251f; color: var(--ink); }
+
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
+  .stops-page > .map-shell {
+    min-height: 320px;
+    height: min(48svh, 400px);
+    max-height: 400px;
+  }
+  .stops-page > .split-panel > .panel-list { max-height: 38svh; }
+  .stops-page > .split-panel > .panel-detail { padding-bottom: 24px; }
+}
