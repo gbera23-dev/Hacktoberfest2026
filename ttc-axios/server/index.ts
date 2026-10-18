@@ -1,6 +1,6 @@
 import cors from "cors";
 import express, { type Request } from "express";
-import { GoogleMapsApi, TtcApi, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../api/src/index.js";
+import { GoogleMapsApi, TtcApi, summarizeGoogleRoutes, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../api/src/index.js";
 import { runTtcChat, type ChatContext, type ChatTurn } from "../api/src/chatGraph.js";
 import { runWhatIfSimulator, type WhatIfInput } from "../api/src/whatIfGraph.js";
 
@@ -97,6 +97,27 @@ app.get("/api/google/transit-route", async (req, res, next) => {
       units: "METRIC",
     });
     res.json({ routes: summarizeGoogleTransitRoutes(routes) });
+  } catch (error) { next(error); }
+});
+
+app.get("/api/google/route-comparison", async (req, res, next) => {
+  try {
+    if (!googleMaps) { res.status(503).json({ message: "Google Maps is not configured" }); return; }
+    const parsePoint = (value: unknown): LatLng | undefined => {
+      const point = String(value ?? "").split(",").map(Number);
+      return point.length === 2 && point.every(Number.isFinite) ? [point[0], point[1]] : undefined;
+    };
+    const from = parsePoint(req.query.from);
+    const to = parsePoint(req.query.to);
+    if (!from || !to) { res.status(400).json({ message: "from and to must be lat,lon coordinates" }); return; }
+    const origin = { location: { latLng: { latitude: from[0], longitude: from[1] } } };
+    const destination = { location: { latLng: { latitude: to[0], longitude: to[1] } } };
+    const languageCode = req.query.locale === "ka" ? "ka" : "en";
+    const [walking, transit] = await Promise.all([
+      googleMaps.routes.compute({ origin, destination, travelMode: "WALK", computeAlternativeRoutes: false, languageCode, units: "METRIC" }),
+      googleMaps.routes.compute({ origin, destination, travelMode: "TRANSIT", computeAlternativeRoutes: true, departureTime: new Date(Date.now() + 60_000).toISOString(), languageCode, units: "METRIC" }),
+    ]);
+    res.json({ walking: summarizeGoogleRoutes(walking)[0] ?? null, transit: summarizeGoogleTransitRoutes(transit) });
   } catch (error) { next(error); }
 });
 

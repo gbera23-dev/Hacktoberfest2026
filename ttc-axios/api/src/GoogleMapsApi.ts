@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance } from "axios";
-import type { ComputeRoutesRequest, ComputeRoutesResponse, GeocodeResponse, GoogleRoute, GoogleTransitRoute, GoogleTransitStep, PlacesSearchRequest, PlacesSearchResponse } from "./googleMapsTypes.js";
+import type { ComputeRoutesRequest, ComputeRoutesResponse, GeocodeResponse, GoogleRoute, GoogleRouteSummary, GoogleTransitRoute, GoogleTransitStep, PlacesSearchRequest, PlacesSearchResponse } from "./googleMapsTypes.js";
 import { MOCK_GEOCODING, MOCK_PLACES, MOCK_ROUTES } from "../../mock-data/googleMaps.js";
 
 export const GOOGLE_ROUTES_BASE_URL = "https://routes.googleapis.com";
@@ -29,6 +29,10 @@ export function extractGoogleTransitSteps(route: GoogleRoute): GoogleTransitStep
 }
 
 export function summarizeGoogleTransitRoutes(response: ComputeRoutesResponse): GoogleTransitRoute[] {
+  return summarizeGoogleRoutes(response);
+}
+
+export function summarizeGoogleRoutes(response: ComputeRoutesResponse): GoogleRouteSummary[] {
   return (response.routes ?? []).map((route) => ({
     distanceMeters: route.distanceMeters,
     duration: route.duration,

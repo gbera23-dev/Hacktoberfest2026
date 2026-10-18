@@ -82,6 +82,13 @@ h3 { font-size: 13px; color: #4c6059; text-transform: uppercase; letter-spacing:
 .google-transit-route > small { color: #788780; margin-top: 3px; }
 .google-transit-step { display: grid; grid-template-columns: auto 1fr; gap: 4px 9px; align-items: center; margin-top: 10px; font-size: 12px; }
 .google-transit-step small { grid-column: 2; color: #788780; }
+.route-comparison { margin-top: 18px; padding-top: 12px; border-top: 1px solid #edf1ef; }
+.route-comparison h3 { margin-top: 0; }
+.comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.comparison-grid article { display: grid; gap: 5px; padding: 13px; background: var(--green-pale); border: 1px solid var(--line); border-radius: 11px; }
+.comparison-grid strong { color: var(--ink-soft); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.comparison-grid b { color: var(--green-dark); font-size: 22px; }
+.comparison-grid small { color: var(--muted); font-size: 11px; }
 .what-if { margin-top: 18px; padding-top: 12px; border-top: 1px solid #edf1ef; }
 .what-if h3 { margin-top: 0; }
 .what-if-result { white-space: pre-wrap; margin: 8px 0 0; padding: 10px; color: #40534b; background: #f7faf8; border: 1px solid #e1eae5; border-radius: 9px; font: inherit; font-size: 12px; line-height: 1.5; }

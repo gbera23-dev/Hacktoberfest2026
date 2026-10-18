@@ -1,4 +1,4 @@
-import { GoogleMapsApi, TtcApi, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../../api/src/index.js";
+import { GoogleMapsApi, TtcApi, summarizeGoogleRoutes, summarizeGoogleTransitRoutes, type LatLng, type Locale } from "../../api/src/index.js";
 import { runTtcChat, type ChatContext, type ChatTurn } from "../../api/src/chatGraph.js";
 import { runWhatIfSimulator, type WhatIfInput } from "../../api/src/whatIfGraph.js";
 
@@ -67,6 +67,20 @@ export async function handler(event: Event): Promise<Response> {
       if (!from || !to) return json({ message: "from and to must be lat,lon coordinates" }, 400);
       const routes = await googleMaps.routes.compute({ origin: { location: { latLng: { latitude: from[0], longitude: from[1] } } }, destination: { location: { latLng: { latitude: to[0], longitude: to[1] } } }, travelMode: "TRANSIT", computeAlternativeRoutes: true, departureTime: new Date(Date.now() + 60_000).toISOString(), languageCode: locale ?? "en", units: "METRIC" });
       return json({ routes: summarizeGoogleTransitRoutes(routes) });
+    }
+    if (event.httpMethod === "GET" && path === "/google/route-comparison") {
+      if (!googleMaps) return json({ message: "Google Maps is not configured" }, 503);
+      const parsePoint = (value: unknown): LatLng | undefined => { const parsed = String(value ?? "").split(",").map(Number); return parsed.length === 2 && parsed.every(Number.isFinite) ? [parsed[0], parsed[1]] : undefined; };
+      const from = parsePoint(query(event, "from")); const to = parsePoint(query(event, "to"));
+      if (!from || !to) return json({ message: "from and to must be lat,lon coordinates" }, 400);
+      const origin = { location: { latLng: { latitude: from[0], longitude: from[1] } } };
+      const destination = { location: { latLng: { latitude: to[0], longitude: to[1] } } };
+      const languageCode = locale ?? "en";
+      const [walking, transit] = await Promise.all([
+        googleMaps.routes.compute({ origin, destination, travelMode: "WALK", computeAlternativeRoutes: false, languageCode, units: "METRIC" }),
+        googleMaps.routes.compute({ origin, destination, travelMode: "TRANSIT", computeAlternativeRoutes: true, departureTime: new Date(Date.now() + 60_000).toISOString(), languageCode, units: "METRIC" }),
+      ]);
+      return json({ walking: summarizeGoogleRoutes(walking)[0] ?? null, transit: summarizeGoogleTransitRoutes(transit) });
     }
     if (event.httpMethod === "GET" && path === "/google/places/search") {
       if (!googleMaps) return json({ message: "Google Maps is not configured" }, 503);

@@ -1,4 +1,4 @@
-import { TtcApi, type GooglePlace, type GoogleTransitRoute, type LatLng, type Locale } from "../../api/src/index";
+import { TtcApi, type GooglePlace, type GoogleRouteSummary, type GoogleTransitRoute, type LatLng, type Locale } from "../../api/src/index";
 
 export type WhatIfRequest = { from: LatLng; to: LatLng; locale: Locale; offsetsMinutes: number[] };
 
@@ -10,6 +10,13 @@ export async function getGoogleTransitRoutes(from: LatLng, to: LatLng, locale: L
   const data = await response.json() as { message?: string; routes?: GoogleTransitRoute[] };
   if (!response.ok) throw new Error(data.message ?? "Google transit route request failed");
   return { routes: data.routes ?? [] };
+}
+
+export async function getGoogleRouteComparison(from: LatLng, to: LatLng, locale: Locale): Promise<{ walking: GoogleRouteSummary | null; transit: GoogleTransitRoute[] }> {
+  const response = await fetch(`/api/google/route-comparison?from=${encodeURIComponent(from.join(","))}&to=${encodeURIComponent(to.join(","))}&locale=${locale}`);
+  const data = await response.json() as { message?: string; walking?: GoogleRouteSummary | null; transit?: GoogleTransitRoute[] };
+  if (!response.ok) throw new Error(data.message ?? "Google route comparison failed");
+  return { walking: data.walking ?? null, transit: data.transit ?? [] };
 }
 
 export async function searchGooglePlaces(query: string, locale: Locale, center?: LatLng): Promise<{ places: GooglePlace[] }> {

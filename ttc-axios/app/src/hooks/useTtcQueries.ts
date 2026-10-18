@@ -1,5 +1,5 @@
 import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
-import { getGoogleTransitRoutes, searchGooglePlaces, simulateDepartures, ttc, type WhatIfRequest } from "../ttc";
+import { getGoogleRouteComparison, getGoogleTransitRoutes, searchGooglePlaces, simulateDepartures, ttc, type WhatIfRequest } from "../ttc";
 import type { LatLng, Locale } from "../../../api/src/index";
 
 export const useStops = (locale: Locale) => useQuery({
@@ -70,6 +70,14 @@ export const useTripPlan = (from: LatLng | undefined, to: LatLng | undefined, lo
 export const useGoogleTransitRoutes = (from: LatLng | undefined, to: LatLng | undefined, locale: Locale) => useQuery({
   queryKey: ["google-transit-routes", from, to, locale],
   queryFn: () => getGoogleTransitRoutes(from!, to!, locale),
+  enabled: Boolean(from && to),
+  retry: 0,
+  staleTime: 30_000,
+});
+
+export const useGoogleRouteComparison = (from: LatLng | undefined, to: LatLng | undefined, locale: Locale) => useQuery({
+  queryKey: ["google-route-comparison", from, to, locale],
+  queryFn: () => getGoogleRouteComparison(from!, to!, locale),
   enabled: Boolean(from && to),
   retry: 0,
   staleTime: 30_000,

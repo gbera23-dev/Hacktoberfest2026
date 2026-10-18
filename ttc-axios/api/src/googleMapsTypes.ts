@@ -80,6 +80,8 @@ export type GoogleTransitRoute = {
   transitSteps: GoogleTransitStep[];
 };
 
+export type GoogleRouteSummary = GoogleTransitRoute;
+
 export type ComputeRoutesResponse = {
   routes?: GoogleRoute[];
   fallbackInfo?: Record<string, unknown>;
